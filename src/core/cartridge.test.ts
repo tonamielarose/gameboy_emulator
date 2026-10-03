@@ -48,4 +48,18 @@ describe('Cartridge', () => {
             expect(cart.type).toBe('UNKNOWN');
         });
     });
+
+    describe('romSize', () => {
+        it('returns 32 KiB for code 0x00', () => {
+            const rom = new Uint8Array(0x8000);
+            rom[0x0148] = 0x00;
+            expect(new Cartridge(rom).romSize).toBe(32 * 1024);
+        });
+
+        it('returns 1 MiB for code 0x05', () => {
+            const rom = new Uint8Array(0x8000);
+            rom[0x0148] = 0x05;
+            expect(new Cartridge(rom).romSize).toBe(1024 * 1024);
+        });
+    });
 });

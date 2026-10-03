@@ -41,7 +41,15 @@ export class Cartridge {
         return title;
     }
 
-    get type():string {
+    get type(): string {
         return CARTRIDGE_TYPE_NAMES[this.rom[CARTRIDGE_TYPE]] ?? "UNKNOWN";
     }
+
+    // return romSize in bytes
+    get romSize(): number {
+        const code = this.rom[ROM_SIZE];
+        return 32768 * (2 ** code); // 32 KiB in bytes * 2^code
+    }
+
+
 }

@@ -31,4 +31,19 @@ export class Mmu {
         }
         return 0xFF;
     }
+
+    /**
+     * Writes a byte at the given address, to whichever component
+     * is mapped there. Writes to unmapped addresses are ignored.
+     */
+    write(address: number, value: number): void {
+        address = address & 0xFFFF;
+        value = value & 0xFF;
+        if (address <= ROM_END) {
+            // ROM is read-only. Writes here will be MBC commands.
+            return;
+        } else if (address >= WRAM_START && address <= WRAM_END) {
+            this.wram[address - WRAM_START] = value;
+        }
+    }
 }

@@ -28,6 +28,8 @@ const RAM_SIZES: Record<number, number> = {
     0x04: 128 * 1024,
     0x05: 64 * 1024,
 }
+const CHECKSUM_ADDRESS = 0x014D
+const CHECKSUM_RANGE_END = 0x014C;
 
 export class Cartridge {
     private readonly rom: Uint8Array;
@@ -59,8 +61,16 @@ export class Cartridge {
         return 32768 * (2 ** code); // 32 KiB in bytes * 2^code
     }
 
-    get ramSize(): number{
+    get ramSize(): number {
         const code = this.rom[RAM_SIZE];
         return RAM_SIZES[code] ?? 0;
+    }
+
+    get isChecksumValid(): boolean {
+        let checksum = 0;
+        for (let address = TITLE_START; address <= CHECKSUM_RANGE_END; address++) {
+            checksum = (checksum - this.rom[address] - 1) & 0xFF;
+        }
+        return this.rom[CHECKSUM_ADDRESS] === checksum;
     }
 }

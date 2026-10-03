@@ -82,4 +82,18 @@ describe('Cartridge', () => {
             expect(new Cartridge(rom).ramSize).toBe(0);
         });
     });
+
+    describe('isChecksumValid', () => {
+        it('returns true for valid checksum', () => {
+            const rom = new Uint8Array(0x8000);
+            rom[0x014D] = 0xE7;
+            expect(new Cartridge(rom).isChecksumValid).toBe(true);
+        });
+
+        it('returns false for invalid checksum', () => {
+            const rom = new Uint8Array(0x8000);
+            rom[0x014D] = 0xE8;
+            expect(new Cartridge(rom).isChecksumValid).toBe(false);
+        });
+    });
 });

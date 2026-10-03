@@ -100,4 +100,13 @@ export class Cartridge {
         }
         return this.rom[CHECKSUM_ADDRESS] === checksum;
     }
+
+    /**
+     * Reads the ROM byte at the given address.
+     * Returns 0xFF if the address is beyond the end of the ROM,
+     * which is what an empty bus reads on real hardware.
+     */
+    readRom(address: number): number {
+        return this.rom[address] ?? 0xFF;
+    }
 }

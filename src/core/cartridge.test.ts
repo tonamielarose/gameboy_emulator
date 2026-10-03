@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { Cartridge } from './cartridge';
+import {describe, it, expect} from 'vitest';
+import {Cartridge} from './cartridge';
 
 // Create a fake 32 KiB ROM with a title written at 0x0134.
 function makeRomWithTitle(title: string): Uint8Array {
@@ -95,5 +95,20 @@ describe('Cartridge', () => {
             rom[0x014D] = 0xE8;
             expect(new Cartridge(rom).isChecksumValid).toBe(false);
         });
+    });
+
+    describe('readRom', () => {
+        it('read an existing address', () => {
+            const rom = new Uint8Array(0x8000);
+            rom[0x0100] = 0x42;
+            const cart = new Cartridge(rom);
+            expect(cart.readRom(0x0100)).toBe(0x42);
+        });
+
+        it('read a not existing address', () => {
+            const rom = new Uint8Array(0x8000);
+            const cart = new Cartridge(rom);
+            expect(cart.readRom(0x8000)).toBe(0xFF);
+        })
     });
 });

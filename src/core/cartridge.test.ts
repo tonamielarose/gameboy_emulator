@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Cartridge } from './cartridge';
 
-
-// create a fake 32ko ROM with a title wrote in 0x0134.
-function makeRomWithTitle(title : string){
+// Create a fake 32 KiB ROM with a title written at 0x0134.
+function makeRomWithTitle(title: string): Uint8Array {
     const rom = new Uint8Array(0x8000);
     for (let i = 0; i < title.length; i++) {
         rom[0x0134 + i] = title.charCodeAt(i);
@@ -12,23 +11,41 @@ function makeRomWithTitle(title : string){
 }
 
 describe('Cartridge', () => {
-    it('read a short title', () => {
-        const rom = makeRomWithTitle("TEST");
-        const cart = new Cartridge(rom);
-        expect(cart.title).toBe("TEST");
+    describe('title', () => {
+        it('reads a short title', () => {
+            const rom = makeRomWithTitle('TEST');
+            const cart = new Cartridge(rom);
+            expect(cart.title).toBe('TEST');
+        });
+
+        it('reads a long title and stops at the end of the zone', () => {
+            const rom = makeRomWithTitle('ANTICONSTITUTION');
+            rom[0x0144] = 'X'.charCodeAt(0); // non-null byte after the title zone
+            const cart = new Cartridge(rom);
+            expect(cart.title).toBe('ANTICONSTITUTION');
+        });
+
+        it('ignores the Game Boy Color flag', () => {
+            const rom = makeRomWithTitle('QUINZECARACTERE');
+            rom[0x0143] = 0x80; // Game Boy Color flag
+            const cart = new Cartridge(rom);
+            expect(cart.title).toBe('QUINZECARACTERE');
+        });
     });
 
-    it('read a long title and stop at the end of the zone', () => {
-        const rom = makeRomWithTitle("ANTICONSTITUTION");
-        rom[0x0144] = 'X'.charCodeAt(0); // not null byte after title zone
-        const cart = new Cartridge(rom);
-        expect(cart.title).toBe("ANTICONSTITUTION");
-    });
+    describe('type', () => {
+        it('reads a known cartridge type', () => {
+            const rom = new Uint8Array(0x8000);
+            rom[0x0147] = 0x01;
+            const cart = new Cartridge(rom);
+            expect(cart.type).toBe('MBC1');
+        });
 
-    it('ignore gameboy color flag', () => {
-        const rom = makeRomWithTitle("QUINZECARACTERE");
-        rom[0x0143] = 0x80; // gameboy color flag
-        const cart = new Cartridge(rom);
-        expect(cart.title).toBe("QUINZECARACTERE");
+        it('returns UNKNOWN for an unsupported code', () => {
+            const rom = new Uint8Array(0x8000);
+            rom[0x0147] = 0xFF;
+            const cart = new Cartridge(rom);
+            expect(cart.type).toBe('UNKNOWN');
+        });
     });
 });

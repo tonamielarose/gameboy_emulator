@@ -10,6 +10,6 @@ input.addEventListener('change', async () => {
     const rom = new Uint8Array(buffer);
     console.log(rom.length);
     const cart = new Cartridge(rom);
-    romInfo.textContent = `Nom de la rom : ${cart.title}`
+    romInfo.textContent = `Nom de la cartouche : ${cart.title} \nType de cartouche : ${cart.type} \n`
 
 });

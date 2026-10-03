@@ -10,6 +10,11 @@ input.addEventListener('change', async () => {
     const rom = new Uint8Array(buffer);
     console.log(rom.length);
     const cart = new Cartridge(rom);
-    romInfo.textContent = `Nom de la cartouche : ${cart.title} \nType de cartouche : ${cart.type}\nTaille de la rom : ${cart.romSize / 1024}ko\nTaille de la ram : ${cart.ramSize / 1024}k\nChecksum valide : ${cart.isChecksumValid}`;
-
+    romInfo.textContent = [
+        `Titre : ${cart.title}`,
+        `Type : ${cart.type}`,
+        `Taille de la ROM : ${cart.romSize / 1024} Ko`,
+        `Taille de la RAM : ${cart.ramSize / 1024} Ko`,
+        `Checksum valide : ${cart.isChecksumValid}`,
+    ].join('\n');
 });

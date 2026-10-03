@@ -62,4 +62,24 @@ describe('Cartridge', () => {
             expect(new Cartridge(rom).romSize).toBe(1024 * 1024);
         });
     });
+
+    describe('ramSize', () => {
+        it('returns 0 when there is no RAM', () => {
+            const rom = new Uint8Array(0x8000);
+            rom[0x0149] = 0x00;
+            expect(new Cartridge(rom).ramSize).toBe(0);
+        });
+
+        it('returns 64 KiB for code 0x05', () => {
+            const rom = new Uint8Array(0x8000);
+            rom[0x0149] = 0x05;
+            expect(new Cartridge(rom).ramSize).toBe(64 * 1024);
+        });
+
+        it('returns 0 for an unknown code', () => {
+            const rom = new Uint8Array(0x8000);
+            rom[0x0149] = 0xFF;
+            expect(new Cartridge(rom).ramSize).toBe(0);
+        });
+    });
 });

@@ -20,6 +20,14 @@ const CARTRIDGE_TYPE_NAMES: Record<number, string> = {
     0x1D: "MBC5+RUMBLE+RAM",
     0x1E: "MBC5+RUMBLE+RAM+BATTERY",
 };
+const RAM_SIZES: Record<number, number> = {
+    0x00: 0,
+    0x01: 0,
+    0x02: 8 * 1024,
+    0x03: 32 * 1024,
+    0x04: 128 * 1024,
+    0x05: 64 * 1024,
+}
 
 export class Cartridge {
     private readonly rom: Uint8Array;
@@ -45,11 +53,14 @@ export class Cartridge {
         return CARTRIDGE_TYPE_NAMES[this.rom[CARTRIDGE_TYPE]] ?? "UNKNOWN";
     }
 
-    // return romSize in bytes
+    // return rom size in bytes
     get romSize(): number {
         const code = this.rom[ROM_SIZE];
         return 32768 * (2 ** code); // 32 KiB in bytes * 2^code
     }
 
-
+    get ramSize(): number{
+        const code = this.rom[RAM_SIZE];
+        return RAM_SIZES[code] ?? 0;
+    }
 }

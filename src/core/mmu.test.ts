@@ -105,4 +105,12 @@ describe('Mmu', () => {
             expect(mmu.read(0xFF90)).toBe(0x42);
         });
     });
+
+    describe('IE register', () => {
+        it('reads back what was written', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFFFF, 0x1F);
+            expect(mmu.read(0xFFFF)).toBe(0x1F);
+        });
+    });
 });

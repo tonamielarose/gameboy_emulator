@@ -134,5 +134,17 @@ describe('Cpu', () => {
             expect(cpu.step()).toBe(12);
             expect(cpu.hl).toBe(0xC000);       // HL itself is unchanged
         });
+
+        it('executes LDH (n), A and LDH A, (n)', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0xE0, 0x80], 0x0100); // LDH (0x80), A → writes 0xFF80
+                rom.set([0xF0, 0x80], 0x0102); // LDH A, (0x80) → reads 0xFF80
+            });
+            cpu.a = 0x42;
+            expect(cpu.step()).toBe(12);
+            cpu.a = 0x00;
+            expect(cpu.step()).toBe(12);
+            expect(cpu.a).toBe(0x42);
+        });
     });
 });

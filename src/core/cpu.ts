@@ -178,9 +178,15 @@ export class Cpu {
             case 0xC3: // JP nn
                 this.pc = this.fetch16();
                 return 16;
+            case 0xE0: // LDH (n), A
+                this.mmu.write(this.fetch8() + 0xFF00, this.a);
+                return 12;
             case 0xEA: // LD (nn), A
                 this.mmu.write(this.fetch16(), this.a);
                 return 16;
+            case 0xF0: // LDH A, (n)
+                this.a = this.mmu.read(this.fetch8() + 0xFF00);
+                return 12;
             case 0xF3: // DI
                 this.ime = false;
                 return 4;

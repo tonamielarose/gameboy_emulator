@@ -74,5 +74,34 @@ describe('Cpu', () => {
             const cpu = makeCpu((rom) => { rom[0x0100] = 0xD3; });
             expect(() => cpu.step()).toThrow('Unknown opcode 0xD3 at 0x0100');
         });
+
+        it('executes LD SP, nn', () => {
+            const cpu = makeCpu((rom) => {
+                rom[0x0100] = 0x31;
+                rom[0x0101] = 0xFE;
+                rom[0x0102] = 0xFF;
+            });
+            expect(cpu.step()).toBe(12);
+            expect(cpu.sp).toBe(0xFFFE);
+            expect(cpu.pc).toBe(0x0103);
+        });
+
+        it('executes LD BC, nn', () => {
+            const cpu = makeCpu((rom) => {
+                rom[0x0100] = 0x01;
+                rom[0x0101] = 0x34;
+                rom[0x0102] = 0x12;
+            });
+            cpu.step();
+            expect(cpu.b).toBe(0x12);
+            expect(cpu.c).toBe(0x34);
+        });
+
+        it('executes DI', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0xF3; });
+            cpu.ime = true;
+            expect(cpu.step()).toBe(4);
+            expect(cpu.ime).toBe(false);
+        });
     });
 });

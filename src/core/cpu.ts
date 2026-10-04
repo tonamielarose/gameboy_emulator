@@ -20,6 +20,7 @@ export class Cpu {
     l: number;
     sp: number;
     pc: number;
+    ime: boolean;
 
 
     constructor(mmu: Mmu) {
@@ -41,6 +42,8 @@ export class Cpu {
         this.bc = 0x0013;
         this.de = 0x00D8;
         this.hl = 0x014D;
+
+        this.ime = false;
     }
 
     /** Register pair AF (A = high byte, F = low byte). The low 4 bits of F always read as 0. */
@@ -104,15 +107,32 @@ export class Cpu {
     /**
      * Executes one instruction at PC and returns the number of T-cycles it took.
      * Throws on opcodes that are not implemented yet.
+     *
+     * @see https://gbdev.io/gb-opcodes/optables/ for opcodes, timings and flags.
      */
     step(): number {
         const opcode = this.fetch8();
         switch (opcode) {
             case 0x00: // NOP
                 return 4;
+            case 0x01: // LD BC, nn
+                this.bc = this.fetch16();
+                return 12;
+            case 0x11: // LD DE, nn
+                this.de = this.fetch16();
+                return 12;
+            case 0x21: // LD HL, nn
+                this.hl = this.fetch16();
+                return 12;
+            case 0x31: // LD SP, nn
+                this.sp = this.fetch16();
+                return 12;
             case 0xC3: // JP nn
                 this.pc = this.fetch16();
                 return 16;
+            case 0xF3: // DI
+                this.ime = false;
+                return 4;
             default:
                 throw new Error(`Unknown opcode 0x${hex(opcode, 2)} at 0x${hex((this.pc - 1) & 0xFFFF, 4)}`);
         }

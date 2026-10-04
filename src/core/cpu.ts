@@ -1,5 +1,10 @@
 import type {Mmu} from "./mmu.ts";
 
+/** Formats a number as uppercase hexadecimal, padded to the given number of digits. */
+function hex(value: number, digits: number): string {
+    return value.toString(16).toUpperCase().padStart(digits, '0');
+}
+
 /**
  * Sharp SM83 CPU: registers, flags and instruction execution.
  */
@@ -44,8 +49,8 @@ export class Cpu {
     }
 
     set af(value: number) {
-       this.a = (value >> 8) & 0xFF;
-       this.f = value & 0xF0;
+        this.a = (value >> 8) & 0xFF;
+        this.f = value & 0xF0;
     }
 
     /** Register pair BC (B = high byte, C = low byte). */
@@ -76,5 +81,40 @@ export class Cpu {
     set hl(value: number) {
         this.h = (value >> 8) & 0xFF;
         this.l = value & 0xFF;
+    }
+
+    /**
+     * Reads the byte at PC and advances PC by one.
+     */
+    private fetch8(): number {
+        const value = this.mmu.read(this.pc);
+        this.pc = (this.pc + 1) & 0xFFFF;
+        return value;
+    }
+
+    /**
+     * Reads a little-endian 16-bit value at PC and advances PC by two.
+     */
+    private fetch16(): number {
+        const value = this.mmu.read16(this.pc);
+        this.pc = (this.pc + 2) & 0xFFFF;
+        return value;
+    }
+
+    /**
+     * Executes one instruction at PC and returns the number of T-cycles it took.
+     * Throws on opcodes that are not implemented yet.
+     */
+    step(): number {
+        const opcode = this.fetch8();
+        switch (opcode) {
+            case 0x00: // NOP
+                return 4;
+            case 0xC3: // JP nn
+                this.pc = this.fetch16();
+                return 16;
+            default:
+                throw new Error(`Unknown opcode 0x${hex(opcode, 2)} at 0x${hex((this.pc - 1) & 0xFFFF, 4)}`);
+        }
     }
 }

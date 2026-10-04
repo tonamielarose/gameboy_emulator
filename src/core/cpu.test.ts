@@ -3,8 +3,9 @@ import { Cartridge } from './cartridge';
 import { Mmu } from './mmu';
 import { Cpu } from './cpu';
 
-function makeCpu(): Cpu {
+function makeCpu(setup?: (rom: Uint8Array) => void): Cpu {
     const rom = new Uint8Array(0x8000);
+    setup?.(rom);
     return new Cpu(new Mmu(new Cartridge(rom)));
 }
 
@@ -49,6 +50,29 @@ describe('Cpu', () => {
             expect(cpu.hl).toBe(0x014D);
             expect(cpu.sp).toBe(0xFFFE);
             expect(cpu.pc).toBe(0x0100);
+        });
+    });
+
+    describe('step', () => {
+        it('executes NOP', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x00; });
+            expect(cpu.step()).toBe(4);
+            expect(cpu.pc).toBe(0x0101);
+        });
+
+        it('executes JP nn', () => {
+            const cpu = makeCpu((rom) => {
+                rom[0x0100] = 0xC3; // JP
+                rom[0x0101] = 0x50; // low byte
+                rom[0x0102] = 0x01; // high byte
+            });
+            expect(cpu.step()).toBe(16);
+            expect(cpu.pc).toBe(0x0150);
+        });
+
+        it('throws on an unknown opcode', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0xD3; });
+            expect(() => cpu.step()).toThrow('Unknown opcode 0xD3 at 0x0100');
         });
     });
 });

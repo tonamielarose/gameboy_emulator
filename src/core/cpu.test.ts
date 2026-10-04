@@ -103,5 +103,17 @@ describe('Cpu', () => {
             expect(cpu.step()).toBe(4);
             expect(cpu.ime).toBe(false);
         });
+
+        it('executes LD (nn), A and LD A, (nn)', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0xEA, 0x00, 0xC0], 0x0100); // LD (0xC000), A
+                rom.set([0xFA, 0x00, 0xC0], 0x0103); // LD A, (0xC000)
+            });
+            cpu.a = 0x42;
+            expect(cpu.step()).toBe(16);   // writes 0x42 at 0xC000
+            cpu.a = 0x00;                  // clear A to prove the next read
+            expect(cpu.step()).toBe(16);   // reads 0xC000 back into A
+            expect(cpu.a).toBe(0x42);
+        });
     });
 });

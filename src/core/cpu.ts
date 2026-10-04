@@ -130,9 +130,15 @@ export class Cpu {
             case 0xC3: // JP nn
                 this.pc = this.fetch16();
                 return 16;
+            case 0xEA: // LD (nn), A
+                this.mmu.write(this.fetch16(), this.a);
+                return 16;
             case 0xF3: // DI
                 this.ime = false;
                 return 4;
+            case 0xFA: // LD A, (nn)
+                this.a = this.mmu.read(this.fetch16());
+                return 16;
             default:
                 throw new Error(`Unknown opcode 0x${hex(opcode, 2)} at 0x${hex((this.pc - 1) & 0xFFFF, 4)}`);
         }

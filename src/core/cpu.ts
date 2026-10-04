@@ -172,6 +172,48 @@ export class Cpu {
     }
 
     /**
+     * Reads a register pair by its index in stack instructions (PUSH, POP):
+     * 0=BC, 1=DE, 2=HL, 3=AF.
+     */
+    private getStackPair(index: number): number {
+        switch (index) {
+            case 0:
+                return this.bc;
+            case 1:
+                return this.de;
+            case 2:
+                return this.hl;
+            case 3:
+                return this.af;
+            default:
+                throw new Error(`Invalid pair index ${index}`);
+        }
+    }
+
+    /**
+     * Writes a register pair by its index in stack instructions (PUSH, POP):
+     * 0=BC, 1=DE, 2=HL, 3=AF.
+     */
+    private setStackPair(index: number, value: number) {
+        switch (index) {
+            case 0:
+                this.bc = value;
+                break;
+            case 1:
+                this.de = value;
+                break;
+            case 2:
+                this.hl = value;
+                break;
+            case 3:
+                this.af = value;
+                break;
+            default:
+                throw new Error(`Invalid pair index ${index}`);
+        }
+    }
+
+    /**
      * Pushes a 16-bit value onto the stack (the stack grows downwards).
      */
     private push16(value: number): void {
@@ -242,6 +284,22 @@ export class Cpu {
             case 0xC9: // RET
                 this.pc = this.pop16();
                 return 16;
+            case 0xC1:
+            case 0xD1:
+            case 0xE1:
+            case 0xF1: { // POP rr
+                const p = (opcode >> 4) & 0x03;
+                this.setStackPair(p, this.pop16());
+                return 12;
+            }
+            case 0xC5:
+            case 0xD5:
+            case 0xE5:
+            case 0xF5: { // PUSH rr
+                const p = (opcode >> 4) & 0x03;
+                this.push16(this.getStackPair(p));
+                return 16;
+            }
             case 0xCD: { // CALL nn
                 const target = this.fetch16();
                 this.push16(this.pc);

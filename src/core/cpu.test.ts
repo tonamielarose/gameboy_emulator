@@ -200,5 +200,29 @@ describe('Cpu', () => {
             cpu.step();
             expect(cpu.pc).toBe(0x0100); // 0x0102 - 2: jumps onto itself
         });
+
+        it('executes PUSH rr and POP rr', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0xC5], 0x0100); // PUSH BC
+                rom.set([0xD1], 0x0101); // POP DE
+            });
+            cpu.bc = 0x1234;
+            expect(cpu.step()).toBe(16);
+            expect(cpu.sp).toBe(0xFFFC);
+            expect(cpu.step()).toBe(12);
+            expect(cpu.de).toBe(0x1234); // BC copied into DE through the stack
+            expect(cpu.sp).toBe(0xFFFE);
+        });
+
+        it('clears the low 4 bits of F on POP AF', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0xC5], 0x0100); // PUSH BC
+                rom.set([0xF1], 0x0101); // POP AF
+            });
+            cpu.bc = 0x12FF;
+            cpu.step();
+            cpu.step();
+            expect(cpu.af).toBe(0x12F0);
+        });
     });
 });

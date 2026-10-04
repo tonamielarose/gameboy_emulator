@@ -10,11 +10,14 @@ const VRAM_SIZE = VRAM_END - VRAM_START + 1;
 
 const EXTERNAL_RAM_START = 0xA000;
 const EXTERNAL_RAM_END = 0xBFFF;
-const EXTERNAL_RAM_SIZE = EXTERNAL_RAM_END - EXTERNAL_RAM_START;
+const EXTERNAL_RAM_SIZE = EXTERNAL_RAM_END - EXTERNAL_RAM_START + 1;
 
 const WRAM_START = 0xC000;
 const WRAM_END = 0xDFFF;
 const WRAM_SIZE = WRAM_END - WRAM_START + 1;
+
+const ECHO_RAM_START = 0xE000;
+const ECHO_RAM_END = 0xFDFF;
 
 /**
  * Memory bus: routes every CPU read and write to the right component
@@ -50,6 +53,9 @@ export class Mmu {
         if (address <= WRAM_END) {
             return this.wram[address - WRAM_START];
         }
+        if (address <= ECHO_RAM_END) {
+            return this.wram[address - ECHO_RAM_START];
+        }
         return 0xFF;
     }
 
@@ -73,6 +79,10 @@ export class Mmu {
         }
         if (address <= WRAM_END) {
             this.wram[address - WRAM_START] = value;
+            return;
+        }
+        if (address <= ECHO_RAM_END) {
+            this.wram[address - ECHO_RAM_START] = value;
             return;
         }
     }

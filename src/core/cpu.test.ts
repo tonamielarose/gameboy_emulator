@@ -115,5 +115,24 @@ describe('Cpu', () => {
             expect(cpu.step()).toBe(16);   // reads 0xC000 back into A
             expect(cpu.a).toBe(0x42);
         });
+
+        it('executes LD r, n', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0x3E, 0x42], 0x0100); // LD A, 0x42
+            });
+            expect(cpu.step()).toBe(8);
+            expect(cpu.a).toBe(0x42);
+            expect(cpu.pc).toBe(0x0102);
+        });
+
+        it('executes LD (HL), n', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0x36, 0x42], 0x0100); // LD (HL), 0x42
+                rom.set([0x7E], 0x0102);       // LD A, (HL), to read it back
+            });
+            cpu.hl = 0xC000;
+            expect(cpu.step()).toBe(12);
+            expect(cpu.hl).toBe(0xC000);       // HL itself is unchanged
+        });
     });
 });

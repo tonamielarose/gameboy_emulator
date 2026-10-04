@@ -105,6 +105,42 @@ export class Cpu {
     }
 
     /**
+     * Writes an 8-bit register by its index in the opcode encoding:
+     * 0=B, 1=C, 2=D, 3=E, 4=H, 5=L, 6=(HL) (memory at address HL), 7=A.
+     */
+    private setRegister(index: number, value: number) {
+        value = value & 0xFF;
+        switch (index) {
+            case 0:
+                this.b = value;
+                return;
+            case 1:
+                this.c = value;
+                return;
+            case 2:
+                this.d = value;
+                return;
+            case 3:
+                this.e = value;
+                return;
+            case 4:
+                this.h = value;
+                return;
+            case 5:
+                this.l = value;
+                return;
+            case 6:
+                this.mmu.write(this.hl, value);
+                return;
+            case 7:
+                this.a = value;
+                return;
+            default:
+                return
+        }
+    }
+
+    /**
      * Executes one instruction at PC and returns the number of T-cycles it took.
      * Throws on opcodes that are not implemented yet.
      *
@@ -118,6 +154,18 @@ export class Cpu {
             case 0x01: // LD BC, nn
                 this.bc = this.fetch16();
                 return 12;
+            case 0x06:
+            case 0x0E:
+            case 0x16:
+            case 0x1E:
+            case 0x26:
+            case 0x2E:
+            case 0x36:
+            case 0x3E: { // LD r, n
+                const r = (opcode >> 3) & 0x07;
+                this.setRegister(r, this.fetch8());
+                return r === 6 ? 12 : 8;
+            }
             case 0x11: // LD DE, nn
                 this.de = this.fetch16();
                 return 12;

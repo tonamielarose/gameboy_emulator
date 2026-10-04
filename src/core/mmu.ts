@@ -19,6 +19,10 @@ const WRAM_SIZE = WRAM_END - WRAM_START + 1;
 const ECHO_RAM_START = 0xE000;
 const ECHO_RAM_END = 0xFDFF;
 
+const OAM_START = 0xFE00;
+const OAM_END = 0xFE9F;
+const OAM_SIZE = OAM_END - OAM_START + 1;
+
 /**
  * Memory bus: routes every CPU read and write to the right component
  * according to the address (see the Game Boy memory map).
@@ -27,11 +31,13 @@ export class Mmu {
     private readonly cartridge: Cartridge;
     private readonly vram: Uint8Array;
     private readonly wram: Uint8Array;
+    private readonly oam: Uint8Array;
 
     constructor(cartridge: Cartridge) {
         this.cartridge = cartridge;
         this.vram = new Uint8Array(VRAM_SIZE);
         this.wram = new Uint8Array(WRAM_SIZE);
+        this.oam = new Uint8Array(OAM_SIZE);
     }
 
     /**
@@ -55,6 +61,9 @@ export class Mmu {
         }
         if (address <= ECHO_RAM_END) {
             return this.wram[address - ECHO_RAM_START];
+        }
+        if (address <= OAM_END) {
+            return this.oam[address - OAM_START];
         }
         return 0xFF;
     }
@@ -83,6 +92,10 @@ export class Mmu {
         }
         if (address <= ECHO_RAM_END) {
             this.wram[address - ECHO_RAM_START] = value;
+            return;
+        }
+        if (address <= OAM_END) {
+            this.oam[address - OAM_START] = value;
             return;
         }
     }

@@ -65,4 +65,12 @@ describe('Mmu', () => {
             expect(mmu.read(0xC020)).toBe(0x42);
         });
     });
+
+    describe('OAM', () => {
+        it('reads back what was written', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFE10, 0x42);
+            expect(mmu.read(0xFE10)).toBe(0x42);
+        });
+    });
 });

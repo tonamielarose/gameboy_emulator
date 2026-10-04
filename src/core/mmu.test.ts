@@ -51,4 +51,18 @@ describe('Mmu', () => {
             expect(mmu.read(0x8010)).toBe(0x42);
         });
     });
+
+    describe('Echo RAM', () => {
+        it('mirrors WRAM writes', () => {
+            const mmu = makeMmu();
+            mmu.write(0xC010, 0x42);
+            expect(mmu.read(0xE010)).toBe(0x42);
+        });
+
+        it('writes through to WRAM', () => {
+            const mmu = makeMmu();
+            mmu.write(0xE020, 0x42);
+            expect(mmu.read(0xC020)).toBe(0x42);
+        });
+    });
 });

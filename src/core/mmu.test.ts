@@ -79,4 +79,18 @@ describe('Mmu', () => {
             expect(mmu.read(0xFE10)).toBe(0x42);
         });
     });
+
+    describe('I/O registers', () => {
+        it('reads back what was written', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFF40, 0x42);
+            expect(mmu.read(0xFF40)).toBe(0x42);
+        });
+
+        it('does not affect OAM', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFF40, 0x42);
+            expect(mmu.read(0xFE40)).toBe(0x00);
+        });
+    });
 });

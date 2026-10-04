@@ -1,4 +1,4 @@
-import type {Cartridge} from "./cartridge.ts";
+import type { Cartridge } from "./cartridge.ts";
 
 // Memory map, in address order
 // See https://gbdev.io/pandocs/Memory_Map.html
@@ -25,6 +25,10 @@ const OAM_SIZE = OAM_END - OAM_START + 1;
 
 const UNUSABLE_END = 0xFEFF;
 
+const IO_REGISTERS_START = 0xFF00;
+const IO_REGISTERS_END = 0xFF7F;
+const IO_REGISTERS_SIZE = IO_REGISTERS_END - IO_REGISTERS_START + 1;
+
 /**
  * Memory bus: routes every CPU read and write to the right component
  * according to the address (see the Game Boy memory map).
@@ -34,12 +38,15 @@ export class Mmu {
     private readonly vram: Uint8Array;
     private readonly wram: Uint8Array;
     private readonly oam: Uint8Array;
+    // Temporary storage until each I/O register is wired to its component.
+    private readonly io: Uint8Array;
 
     constructor(cartridge: Cartridge) {
         this.cartridge = cartridge;
         this.vram = new Uint8Array(VRAM_SIZE);
         this.wram = new Uint8Array(WRAM_SIZE);
         this.oam = new Uint8Array(OAM_SIZE);
+        this.io = new Uint8Array(IO_REGISTERS_SIZE);
     }
 
     /**
@@ -56,7 +63,7 @@ export class Mmu {
             return this.vram[address - VRAM_START];
         }
         if (address <= EXTERNAL_RAM_END) {
-            return 0xFF;
+            return 0xFF; // external RAM: not implemented yet (requires MBC support)
         }
         if (address <= WRAM_END) {
             return this.wram[address - WRAM_START];
@@ -69,6 +76,9 @@ export class Mmu {
         }
         if (address <= UNUSABLE_END) {
             return 0xFF;
+        }
+        if (address <= IO_REGISTERS_END) {
+            return this.io[address - IO_REGISTERS_START];
         }
         return 0xFF;
     }
@@ -89,7 +99,7 @@ export class Mmu {
             return;
         }
         if (address <= EXTERNAL_RAM_END) {
-            return;
+            return; // external RAM: not implemented yet (requires MBC support)
         }
         if (address <= WRAM_END) {
             this.wram[address - WRAM_START] = value;
@@ -104,6 +114,10 @@ export class Mmu {
             return;
         }
         if (address <= UNUSABLE_END) {
+            return;
+        }
+        if (address <= IO_REGISTERS_END) {
+            this.io[address - IO_REGISTERS_START] = value;
             return;
         }
     }

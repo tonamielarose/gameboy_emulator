@@ -160,5 +160,29 @@ describe('Cpu', () => {
             expect(cpu.pc).toBe(0x0103);  // back right after the CALL
             expect(cpu.sp).toBe(0xFFFE);  // stack restored
         });
+
+        it('executes LD r, r\'', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x7D; }); // LD A, L
+            cpu.l = 0x42;
+            expect(cpu.step()).toBe(4);
+            expect(cpu.a).toBe(0x42);
+        });
+
+        it('executes LD (HL), r and LD r, (HL)', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0x70], 0x0100); // LD (HL), B
+                rom.set([0x7E], 0x0101); // LD A, (HL)
+            });
+            cpu.hl = 0xC000;
+            cpu.b = 0x42;
+            expect(cpu.step()).toBe(8); // writes B at 0xC000
+            expect(cpu.step()).toBe(8); // reads 0xC000 into A
+            expect(cpu.a).toBe(0x42);
+        });
+
+        it('does not treat 0x76 (HALT) as a load', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x76; });
+            expect(() => cpu.step()).toThrow('Unknown opcode 0x76');
+        });
     });
 });

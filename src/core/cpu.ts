@@ -136,7 +136,34 @@ export class Cpu {
                 this.a = value;
                 return;
             default:
-                return
+                throw new Error(`Invalid register index ${index}`);
+        }
+    }
+
+    /**
+     * Reads an 8-bit register by its index in the opcode encoding:
+     * 0=B, 1=C, 2=D, 3=E, 4=H, 5=L, 6=(HL) (memory at address HL), 7=A.
+     */
+    private getRegister(index: number): number {
+        switch (index) {
+            case 0:
+                return this.b;
+            case 1:
+                return this.c;
+            case 2:
+                return this.d;
+            case 3:
+                return this.e;
+            case 4:
+                return this.h;
+            case 5:
+                return this.l;
+            case 6:
+                return this.mmu.read(this.hl);
+            case 7:
+                return this.a;
+            default:
+                throw new Error(`Invalid register index ${index}`);
         }
     }
 
@@ -165,6 +192,14 @@ export class Cpu {
      */
     step(): number {
         const opcode = this.fetch8();
+
+        if (opcode >= 0x40 && opcode <= 0x7F && opcode !== 0x76) { // LD r, r'
+            const dst = (opcode >> 3) & 0x07;
+            const src = opcode & 0x07;
+            this.setRegister(dst, this.getRegister(src));
+            return (dst === 6 || src === 6) ? 8 : 4;
+        }
+
         switch (opcode) {
             case 0x00: // NOP
                 return 4;

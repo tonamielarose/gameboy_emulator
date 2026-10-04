@@ -135,4 +135,21 @@ describe('Mmu', () => {
             expect(mmu.read16(0xFFFF)).toBe(0x0034);
         });
     });
+
+    describe('serial port', () => {
+        it('captures characters sent through the serial port', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFF01, 'O'.charCodeAt(0));
+            mmu.write(0xFF02, 0x81);
+            mmu.write(0xFF01, 'K'.charCodeAt(0));
+            mmu.write(0xFF02, 0x81);
+            expect(mmu.serial).toBe('OK');
+        });
+
+        it('ignores data that is never sent', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFF01, 'X'.charCodeAt(0));
+            expect(mmu.serial).toBe('');
+        });
+    });
 });

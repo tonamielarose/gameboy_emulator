@@ -29,11 +29,16 @@ const IO_REGISTERS_START = 0xFF00;
 const IO_REGISTERS_END = 0xFF7F;
 const IO_REGISTERS_SIZE = IO_REGISTERS_END - IO_REGISTERS_START + 1;
 
+const SERIAL_DATA = 0xFF01;
+const SERIAL_CONTROL = 0xFF02;
+
 const HRAM_START = 0xFF80;
 const HRAM_END = 0xFFFE;
 const HRAM_SIZE = HRAM_END - HRAM_START + 1;
 
 const IE_ADDRESS = 0xFFFF;
+
+
 
 /**
  * Memory bus: routes every CPU read and write to the right component
@@ -48,6 +53,7 @@ export class Mmu {
     private readonly io: Uint8Array;
     private readonly hram: Uint8Array;
     private ie: number;
+    private serialOutput: string;
 
     constructor(cartridge: Cartridge) {
         this.cartridge = cartridge;
@@ -57,6 +63,7 @@ export class Mmu {
         this.io = new Uint8Array(IO_REGISTERS_SIZE);
         this.hram = new Uint8Array(HRAM_SIZE);
         this.ie = 0;
+        this.serialOutput = "";
     }
 
     /**
@@ -134,6 +141,10 @@ export class Mmu {
         }
         if (address <= IO_REGISTERS_END) {
             this.io[address - IO_REGISTERS_START] = value;
+            if(address === SERIAL_CONTROL && value === 0x81){
+                const char = String.fromCharCode(this.read(SERIAL_DATA));
+                this.serialOutput += char;
+            }
             return;
         }
         if (address <= HRAM_END) {
@@ -166,5 +177,13 @@ export class Mmu {
         this.write(address, low);
         const high = value >> 8;
         this.write(address + 1, high);
+    }
+
+    /**
+     * Text sent through the serial port so far.
+     * Test ROMs (such as Blargg's) report their results this way.
+     */
+    get serial(): string {
+        return this.serialOutput;
     }
 }

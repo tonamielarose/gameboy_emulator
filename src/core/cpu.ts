@@ -141,6 +141,23 @@ export class Cpu {
     }
 
     /**
+     * Pushes a 16-bit value onto the stack (the stack grows downwards).
+     */
+    private push16(value: number): void {
+        this.sp = (this.sp - 2) & 0xFFFF;
+        this.mmu.write16(this.sp, value);
+    }
+
+    /**
+     * Pops a 16-bit value from the stack.
+     */
+    private pop16(): number {
+        const value = this.mmu.read16(this.sp);
+        this.sp = (this.sp + 2) & 0xFFFF;
+        return value;
+    }
+
+    /**
      * Executes one instruction at PC and returns the number of T-cycles it took.
      * Throws on opcodes that are not implemented yet.
      *
@@ -178,6 +195,15 @@ export class Cpu {
             case 0xC3: // JP nn
                 this.pc = this.fetch16();
                 return 16;
+            case 0xC9: // RET
+                this.pc = this.pop16();
+                return 16;
+            case 0xCD: { // CALL nn
+                const target = this.fetch16();
+                this.push16(this.pc);
+                this.pc = target;
+                return 24;
+            }
             case 0xE0: // LDH (n), A
                 this.mmu.write(this.fetch8() + 0xFF00, this.a);
                 return 12;

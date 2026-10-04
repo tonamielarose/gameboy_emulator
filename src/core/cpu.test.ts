@@ -146,5 +146,19 @@ describe('Cpu', () => {
             expect(cpu.step()).toBe(12);
             expect(cpu.a).toBe(0x42);
         });
+
+        it('executes CALL nn and RET', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0xCD, 0x00, 0x20], 0x0100); // CALL 0x2000
+                rom.set([0xC9], 0x2000);             // RET
+            });
+            expect(cpu.step()).toBe(24);
+            expect(cpu.pc).toBe(0x2000);  // jumped to the subroutine
+            expect(cpu.sp).toBe(0xFFFC);  // return address pushed (SP went down by 2)
+
+            expect(cpu.step()).toBe(16);
+            expect(cpu.pc).toBe(0x0103);  // back right after the CALL
+            expect(cpu.sp).toBe(0xFFFE);  // stack restored
+        });
     });
 });

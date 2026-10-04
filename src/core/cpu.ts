@@ -27,8 +27,15 @@ export class Cpu {
         this.e = 0;
         this.h = 0;
         this.l = 0;
-        this.sp = 0;
-        this.pc = 0;
+        this.sp = 0xFFFE;
+        this.pc = 0x0100;
+
+        // Register values left by the DMG boot ROM, which is not emulated.
+        // See https://gbdev.io/pandocs/Power_Up_Sequence.html
+        this.af = 0x01B0;
+        this.bc = 0x0013;
+        this.de = 0x00D8;
+        this.hl = 0x014D;
     }
 
     /** Register pair AF (A = high byte, F = low byte). The low 4 bits of F always read as 0. */

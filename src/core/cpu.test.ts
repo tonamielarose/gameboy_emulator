@@ -39,4 +39,16 @@ describe('Cpu', () => {
             expect(cpu.af).toBe(0x12F0);
         });
     });
+
+    describe('initial state', () => {
+        it('starts with the values left by the DMG boot ROM', () => {
+            const cpu = makeCpu();
+            expect(cpu.af).toBe(0x01B0);
+            expect(cpu.bc).toBe(0x0013);
+            expect(cpu.de).toBe(0x00D8);
+            expect(cpu.hl).toBe(0x014D);
+            expect(cpu.sp).toBe(0xFFFE);
+            expect(cpu.pc).toBe(0x0100);
+        });
+    });
 });

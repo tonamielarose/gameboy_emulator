@@ -113,4 +113,26 @@ describe('Mmu', () => {
             expect(mmu.read(0xFFFF)).toBe(0x1F);
         });
     });
+
+    describe('16-bit access', () => {
+        it('writes in little-endian order', () => {
+            const mmu = makeMmu();
+            mmu.write16(0xC000, 0x1234);
+            expect(mmu.read(0xC000)).toBe(0x34);
+            expect(mmu.read(0xC001)).toBe(0x12);
+        });
+
+        it('reads back a 16-bit value', () => {
+            const mmu = makeMmu();
+            mmu.write16(0xC000, 0xBEEF);
+            expect(mmu.read16(0xC000)).toBe(0xBEEF);
+        });
+
+        it('wraps around at the end of the address space', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFFFF, 0x34);
+            mmu.write(0x0000, 0x12); // ROM: ignored, reads 0x00 from the fake ROM
+            expect(mmu.read16(0xFFFF)).toBe(0x0034);
+        });
+    });
 });

@@ -1,4 +1,4 @@
-import type { Cartridge } from "./cartridge.ts";
+import type {Cartridge} from "./cartridge.ts";
 
 // Memory map, in address order
 // See https://gbdev.io/pandocs/Memory_Map.html
@@ -144,5 +144,27 @@ export class Mmu {
             this.ie = value;
             return;
         }
+    }
+
+    /**
+     * Reads a 16-bit value stored in little-endian order:
+     * low byte at `address`, high byte at `address + 1`.
+     */
+    read16(address: number): number {
+        const low = this.read(address) & 0xFF;
+        const high = (this.read(address + 1)) & 0xFF;
+        const value = (high << 8) | low;
+        return value;
+    }
+
+    /**
+     * Writes a 16-bit value in little-endian order:
+     * low byte at `address`, high byte at `address + 1`.
+     */
+    write16(address: number, value: number): void {
+        const low = value & 0xFF;
+        this.write(address, low);
+        const high = value >> 8;
+        this.write(address + 1, high);
     }
 }

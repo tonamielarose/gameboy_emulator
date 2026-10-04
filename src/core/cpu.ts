@@ -5,6 +5,10 @@ function hex(value: number, digits: number): string {
     return value.toString(16).toUpperCase().padStart(digits, '0');
 }
 
+function toSigned8(byte: number): number {
+    return byte >= 0x80 ? byte - 0x100 : byte;
+}
+
 /**
  * Sharp SM83 CPU: registers, flags and instruction execution.
  */
@@ -221,6 +225,11 @@ export class Cpu {
             case 0x11: // LD DE, nn
                 this.de = this.fetch16();
                 return 12;
+            case 0x18: { // JR e
+                const offset = toSigned8(this.fetch8());
+                this.pc = (this.pc + offset) & 0xFFFF;
+                return 12;
+            }
             case 0x21: // LD HL, nn
                 this.hl = this.fetch16();
                 return 12;

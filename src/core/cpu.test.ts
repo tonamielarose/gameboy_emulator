@@ -184,5 +184,21 @@ describe('Cpu', () => {
             const cpu = makeCpu((rom) => { rom[0x0100] = 0x76; });
             expect(() => cpu.step()).toThrow('Unknown opcode 0x76');
         });
+
+        it('executes JR e forwards', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0x18, 0x05], 0x0100); // JR +5
+            });
+            expect(cpu.step()).toBe(12);
+            expect(cpu.pc).toBe(0x0107); // 0x0102 + 5
+        });
+
+        it('executes JR e backwards', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0x18, 0xFE], 0x0100); // JR -2
+            });
+            cpu.step();
+            expect(cpu.pc).toBe(0x0100); // 0x0102 - 2: jumps onto itself
+        });
     });
 });

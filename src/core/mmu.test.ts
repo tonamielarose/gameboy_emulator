@@ -37,10 +37,16 @@ describe('Mmu', () => {
         });
     });
 
-    describe('unmapped addresses', () => {
-        it('read as 0xFF', () => {
+    describe('unusable area', () => {
+        it('reads as 0xFF', () => {
             const mmu = makeMmu();
-            expect(mmu.read(0xA000)).toBe(0xFF);
+            expect(mmu.read(0xFEA0)).toBe(0xFF);
+        });
+
+        it('ignores writes', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFEA0, 0x42);
+            expect(mmu.read(0xFEA0)).toBe(0xFF);
         });
     });
 

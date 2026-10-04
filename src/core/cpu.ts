@@ -274,6 +274,31 @@ export class Cpu {
     }
 
     /**
+     * Returns the memory address used by (BC), (DE), (HL+) and (HL-) operands,
+     * by index: 0=BC, 1=DE, 2=HL then increment, 3=HL then decrement.
+     */
+    private pointerAddress(index: number): number {
+        switch (index) {
+            case 0:
+                return this.bc;
+            case 1:
+                return this.de;
+            case 2: {
+                const value = this.hl;
+                this.hl += 1;
+                return value;
+            }
+            case 3: {
+                const value= this.hl;
+                this.hl -= 1;
+                return value;
+            }
+            default:
+                throw new Error(`Invalid pointer index ${index}`);
+        }
+    }
+
+    /**
      * Executes one instruction at PC and returns the number of T-cycles it took.
      * Throws on opcodes that are not implemented yet.
      *
@@ -325,6 +350,24 @@ export class Cpu {
                 const r = (opcode >> 3) & 0x07;
                 this.setRegister(r, this.fetch8());
                 return r === 6 ? 12 : 8;
+            }
+
+            case 0x02:
+            case 0x12:
+            case 0x22:
+            case 0x32: { // LD (rr), A
+                const p = (opcode >> 4) & 0x03;
+                this.mmu.write(this.pointerAddress(p), this.a);
+                return 8;
+            }
+
+            case 0x0A:
+            case 0x1A:
+            case 0x2A:
+            case 0x3A: { // LD A, (rr)
+                const p = (opcode >> 4) & 0x03;
+                this.a = this.mmu.read(this.pointerAddress(p));
+                return 8;
             }
 
             case 0x11: // LD DE, nn

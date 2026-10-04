@@ -247,5 +247,26 @@ describe('Cpu', () => {
             expect(cpu.bc).toBe(0x0000);
             expect(cpu.f).toBe(0xF0); // unchanged, even though the result is zero
         });
+
+        it('executes LD (HL+), A', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x22; });
+            cpu.hl = 0xC000;
+            cpu.a = 0x42;
+            expect(cpu.step()).toBe(8);
+            expect(cpu.hl).toBe(0xC001); // HL incremented after the write
+        });
+
+        it('executes LD A, (HL-)', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0x70], 0x0100); // LD (HL), B  — store a value first
+                rom.set([0x3A], 0x0101); // LD A, (HL-)
+            });
+            cpu.hl = 0xC000;
+            cpu.b = 0x42;
+            cpu.step();
+            expect(cpu.step()).toBe(8);
+            expect(cpu.a).toBe(0x42);
+            expect(cpu.hl).toBe(0xBFFF); // HL decremented after the read
+        });
     });
 });

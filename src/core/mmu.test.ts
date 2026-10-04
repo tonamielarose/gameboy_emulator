@@ -43,4 +43,12 @@ describe('Mmu', () => {
             expect(mmu.read(0xA000)).toBe(0xFF);
         });
     });
+
+    describe('VRAM', () => {
+        it('reads back what was written', () => {
+            const mmu = makeMmu();
+            mmu.write(0x8010, 0x42);
+            expect(mmu.read(0x8010)).toBe(0x42);
+        });
+    });
 });

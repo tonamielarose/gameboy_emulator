@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { Cartridge } from './cartridge';
-import { Mmu } from './mmu';
+import {describe, it, expect} from 'vitest';
+import {Cartridge} from './cartridge';
+import {Mmu} from './mmu';
 
 // Create a bus with a fake 32 KiB ROM, optionally modified by the caller.
 function makeMmu(setup?: (rom: Uint8Array) => void): Mmu {
@@ -26,12 +26,16 @@ describe('Mmu', () => {
 
     describe('ROM', () => {
         it('reads from the cartridge', () => {
-            const mmu = makeMmu((rom) => { rom[0x0100] = 0x42; });
+            const mmu = makeMmu((rom) => {
+                rom[0x0100] = 0x42;
+            });
             expect(mmu.read(0x0100)).toBe(0x42);
         });
 
         it('ignores writes', () => {
-            const mmu = makeMmu((rom) => { rom[0x0100] = 0x42; });
+            const mmu = makeMmu((rom) => {
+                rom[0x0100] = 0x42;
+            });
             mmu.write(0x0100, 0x99);
             expect(mmu.read(0x0100)).toBe(0x42);
         });
@@ -91,6 +95,14 @@ describe('Mmu', () => {
             const mmu = makeMmu();
             mmu.write(0xFF40, 0x42);
             expect(mmu.read(0xFE40)).toBe(0x00);
+        });
+    });
+
+    describe('HRAM', () => {
+        it('reads back what was written', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFF90, 0x42);
+            expect(mmu.read(0xFF90)).toBe(0x42);
         });
     });
 });

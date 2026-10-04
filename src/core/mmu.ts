@@ -29,6 +29,10 @@ const IO_REGISTERS_START = 0xFF00;
 const IO_REGISTERS_END = 0xFF7F;
 const IO_REGISTERS_SIZE = IO_REGISTERS_END - IO_REGISTERS_START + 1;
 
+const HRAM_START = 0xFF80;
+const HRAM_END = 0xFFFE;
+const HRAM_SIZE = HRAM_END - HRAM_START + 1;
+
 /**
  * Memory bus: routes every CPU read and write to the right component
  * according to the address (see the Game Boy memory map).
@@ -40,6 +44,7 @@ export class Mmu {
     private readonly oam: Uint8Array;
     // Temporary storage until each I/O register is wired to its component.
     private readonly io: Uint8Array;
+    private readonly hram: Uint8Array;
 
     constructor(cartridge: Cartridge) {
         this.cartridge = cartridge;
@@ -47,6 +52,7 @@ export class Mmu {
         this.wram = new Uint8Array(WRAM_SIZE);
         this.oam = new Uint8Array(OAM_SIZE);
         this.io = new Uint8Array(IO_REGISTERS_SIZE);
+        this.hram = new Uint8Array(HRAM_SIZE);
     }
 
     /**
@@ -79,6 +85,9 @@ export class Mmu {
         }
         if (address <= IO_REGISTERS_END) {
             return this.io[address - IO_REGISTERS_START];
+        }
+        if (address <= HRAM_END) {
+            return this.hram[address - HRAM_START];
         }
         return 0xFF;
     }
@@ -118,6 +127,10 @@ export class Mmu {
         }
         if (address <= IO_REGISTERS_END) {
             this.io[address - IO_REGISTERS_START] = value;
+            return;
+        }
+        if (address <= HRAM_END) {
+            this.hram[address - HRAM_START] = value;
             return;
         }
     }

@@ -231,6 +231,49 @@ export class Cpu {
     }
 
     /**
+     * Reads a register pair by its index in most 16-bit instructions:
+     * 0=BC, 1=DE, 2=HL, 3=SP.
+     */
+    private getPair(index: number): number {
+        switch (index) {
+            case 0:
+                return this.bc;
+            case 1:
+                return this.de;
+            case 2:
+                return this.hl;
+            case 3:
+                return this.sp;
+            default:
+                throw new Error(`Invalid pair index ${index}`);
+        }
+    }
+
+    /**
+     * Writes a register pair by its index in most 16-bit instructions:
+     * 0=BC, 1=DE, 2=HL, 3=SP.
+     */
+    private setPair(index: number, value: number): void {
+        value = value & 0xFFFF;
+        switch (index) {
+            case 0:
+                this.bc = value;
+                break;
+            case 1:
+                this.de = value;
+                break;
+            case 2:
+                this.hl = value;
+                break;
+            case 3:
+                this.sp = value;
+                break;
+            default:
+                throw new Error(`Invalid pair index ${index}`);
+        }
+    }
+
+    /**
      * Executes one instruction at PC and returns the number of T-cycles it took.
      * Throws on opcodes that are not implemented yet.
      *
@@ -252,6 +295,25 @@ export class Cpu {
             case 0x01: // LD BC, nn
                 this.bc = this.fetch16();
                 return 12;
+
+            case 0x03:
+            case 0x13:
+            case 0x23:
+            case 0x33: { // INC rr
+                const p = (opcode >> 4) & 0x03;
+                this.setPair(p, this.getPair(p)+1);
+                return 8;
+            }
+
+            case 0x0B:
+            case 0x1B:
+            case 0X2B:
+            case 0X3B: { // DEC rr
+                const p = (opcode >> 4) & 0x03;
+                this.setPair(p, this.getPair(p)-1);
+                return 8;
+            }
+
             case 0x06:
             case 0x0E:
             case 0x16:
@@ -264,6 +326,7 @@ export class Cpu {
                 this.setRegister(r, this.fetch8());
                 return r === 6 ? 12 : 8;
             }
+
             case 0x11: // LD DE, nn
                 this.de = this.fetch16();
                 return 12;

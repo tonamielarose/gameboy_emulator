@@ -224,5 +224,28 @@ describe('Cpu', () => {
             cpu.step();
             expect(cpu.af).toBe(0x12F0);
         });
+
+        it('executes INC rr', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x23; }); // INC HL
+            cpu.hl = 0x12FF;
+            expect(cpu.step()).toBe(8);
+            expect(cpu.hl).toBe(0x1300);
+        });
+
+        it('wraps around on DEC rr', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x3B; }); // DEC SP
+            cpu.sp = 0x0000;
+            cpu.step();
+            expect(cpu.sp).toBe(0xFFFF);
+        });
+
+        it('does not change flags on INC rr', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x03; }); // INC BC
+            cpu.f = 0xF0;
+            cpu.bc = 0xFFFF;
+            cpu.step();
+            expect(cpu.bc).toBe(0x0000);
+            expect(cpu.f).toBe(0xF0); // unchanged, even though the result is zero
+        });
     });
 });

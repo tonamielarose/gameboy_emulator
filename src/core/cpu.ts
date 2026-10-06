@@ -298,6 +298,75 @@ export class Cpu {
         }
     }
 
+    /** Zero flag (bit 7 of F): set when the last result was zero. */
+    get flagZ(): boolean {
+        return (this.f & 0x80) !== 0;
+    }
+
+    set flagZ(value: boolean) {
+        this.f = value ? this.f | 0x80 : this.f & ~0x80 & 0xFF;
+    }
+
+    /** Subtract flag (bit 6 of F): set when the last operation was a subtraction. */
+    get flagN(): boolean {
+        return (this.f & 0x40) !== 0;
+    }
+
+    set flagN(value: boolean) {
+        this.f = value ? this.f | 0x40 : this.f & ~0x40 & 0xFF;
+    }
+
+    /** Half-carry flag (bit 5 of F): set on a carry from bit 3 to bit 4. */
+    get flagH(): boolean {
+        return (this.f & 0x20) !== 0;
+    }
+
+    set flagH(value: boolean) {
+        this.f = value ? this.f | 0x20 : this.f & ~0x20 & 0xFF;
+    }
+
+    /** Carry flag (bit 4 of F): set when the last result overflowed 8 bits. */
+    get flagC(): boolean {
+        return (this.f & 0x10) !== 0;
+    }
+
+    set flagC(value: boolean) {
+        this.f = value ? this.f | 0x10 : this.f & ~0x10 & 0xFF;
+    }
+
+    /**
+     * Performs one of the 8 ALU operations on A with the given operand,
+     * by index: 0=ADD, 1=ADC, 2=SUB, 3=SBC, 4=AND, 5=XOR, 6=OR, 7=CP.
+     * The result goes into A (except CP) and the flags are updated.
+     */
+    private alu(op:number, value:number): void {
+        switch (op) {
+            case 4: // AND
+                this.a = this.a & value;
+                this.flagZ = this.a === 0;
+                this.flagN = false;
+                this.flagH = true;
+                this.flagC = false;
+                break;
+            case 5: // XOR
+                this.a = this.a ^ value;
+                this.flagZ = this.a === 0;
+                this.flagN = false;
+                this.flagH = false;
+                this.flagC = false;
+                break;
+            case 6: // OR
+                this.a = this.a | value;
+                this.flagZ = this.a === 0;
+                this.flagN = false;
+                this.flagH = false;
+                this.flagC = false;
+                break;
+            default:
+                throw new Error(`ALU operation ${op} not implemented`);
+        }
+    }
+
     /**
      * Executes one instruction at PC and returns the number of T-cycles it took.
      * Throws on opcodes that are not implemented yet.
@@ -312,6 +381,13 @@ export class Cpu {
             const src = opcode & 0x07;
             this.setRegister(dst, this.getRegister(src));
             return (dst === 6 || src === 6) ? 8 : 4;
+        }
+
+        if (opcode >= 0x80 && opcode <= 0xBF) { // ALU A, r
+            const op = (opcode >> 3) & 0x07;
+            const z = opcode & 0x07;
+            this.alu(op, this.getRegister(z));
+            return z === 6 ? 8 : 4;
         }
 
         switch (opcode) {

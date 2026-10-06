@@ -268,5 +268,32 @@ describe('Cpu', () => {
             expect(cpu.a).toBe(0x42);
             expect(cpu.hl).toBe(0xBFFF); // HL decremented after the read
         });
+
+        it('executes OR r', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0xB1; }); // OR C
+            cpu.a = 0b1100_0000;
+            cpu.c = 0b0000_0011;
+            expect(cpu.step()).toBe(4);
+            expect(cpu.a).toBe(0b1100_0011);
+            expect(cpu.f).toBe(0x00);
+        });
+
+        it('sets H on AND r', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0xA0; }); // AND B
+            cpu.a = 0xF0;
+            cpu.b = 0x0F;
+            cpu.step();
+            expect(cpu.a).toBe(0x00);
+            expect(cpu.flagZ).toBe(true);
+            expect(cpu.flagH).toBe(true);
+        });
+
+        it('clears A with XOR A', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0xAF; }); // XOR A
+            cpu.a = 0x42;
+            cpu.step();
+            expect(cpu.a).toBe(0x00);
+            expect(cpu.flagZ).toBe(true);
+        });
     });
 });

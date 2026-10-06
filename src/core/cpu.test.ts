@@ -309,5 +309,34 @@ describe('Cpu', () => {
             expect(cpu.step()).toBe(8);
             expect(cpu.pc).toBe(0x0102); // continues after the operand
         });
+
+        it('executes SUB r with borrow', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x90; }); // SUB B
+            cpu.a = 0x05;
+            cpu.b = 0x10;
+            cpu.step();
+            expect(cpu.a).toBe(0xF5);
+            expect(cpu.flagN).toBe(true);
+            expect(cpu.flagC).toBe(true);  // 0x05 < 0x10
+            expect(cpu.flagH).toBe(false); // low nibbles: 5 >= 0
+        });
+
+        it('sets H on SUB r when the low nibble borrows', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x90; }); // SUB B
+            cpu.a = 0x10;
+            cpu.b = 0x01;
+            cpu.step();
+            expect(cpu.a).toBe(0x0F);
+            expect(cpu.flagH).toBe(true);  // low nibbles: 0 < 1
+            expect(cpu.flagC).toBe(false);
+        });
+
+        it('executes CP n without changing A', () => {
+            const cpu = makeCpu((rom) => { rom.set([0xFE, 0x42], 0x0100); }); // CP 0x42
+            cpu.a = 0x42;
+            expect(cpu.step()).toBe(8);
+            expect(cpu.a).toBe(0x42);      // A unchanged
+            expect(cpu.flagZ).toBe(true);  // A == n
+        });
     });
 });

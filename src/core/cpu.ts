@@ -341,6 +341,15 @@ export class Cpu {
      */
     private alu(op: number, value: number): void {
         switch (op) {
+            case 2: {// SUB
+                const result = (this.a - value) & 0xFF;
+                this.flagZ = result === 0;
+                this.flagN = true;
+                this.flagH = (this.a & 0x0F) < (value & 0x0F);
+                this.flagC = this.a < value;
+                this.a = result;
+                break;
+            }
             case 4: // AND
                 this.a = this.a & value;
                 this.flagZ = this.a === 0;
@@ -362,6 +371,14 @@ export class Cpu {
                 this.flagH = false;
                 this.flagC = false;
                 break;
+            case 7: { // CP
+                const result = (this.a - value) & 0xFF;
+                this.flagZ = result === 0;
+                this.flagN = true;
+                this.flagH = (this.a & 0x0F) < (value & 0x0F);
+                this.flagC = this.a < value;
+                break;
+            }
             default:
                 throw new Error(`ALU operation ${op} not implemented`);
         }
@@ -527,6 +544,19 @@ export class Cpu {
                 this.push16(this.pc);
                 this.pc = target;
                 return 24;
+            }
+
+            case 0xC6:
+            case 0xCE:
+            case 0xD6:
+            case 0xDE:
+            case 0xE6:
+            case 0xEE:
+            case 0xF6:
+            case 0xFE: { // ALU A, n
+                const op = (opcode >> 3) & 0x07;
+                this.alu(op, this.fetch8());
+                return 8;
             }
 
             case 0xE0: // LDH (n), A

@@ -338,5 +338,49 @@ describe('Cpu', () => {
             expect(cpu.a).toBe(0x42);      // A unchanged
             expect(cpu.flagZ).toBe(true);  // A == n
         });
+
+        it('takes CALL cc, nn when the condition is met', () => {
+            const cpu = makeCpu((rom) => { rom.set([0xC4, 0x00, 0x20], 0x0100); }); // CALL NZ, 0x2000
+            cpu.flagZ = false;
+            expect(cpu.step()).toBe(24);
+            expect(cpu.pc).toBe(0x2000);
+            expect(cpu.sp).toBe(0xFFFC);
+        });
+
+        it('skips CALL cc, nn when the condition is not met', () => {
+            const cpu = makeCpu((rom) => { rom.set([0xC4, 0x00, 0x20], 0x0100); }); // CALL NZ, 0x2000
+            cpu.flagZ = true;
+            expect(cpu.step()).toBe(12);
+            expect(cpu.pc).toBe(0x0103); // skips the operand
+            expect(cpu.sp).toBe(0xFFFE); // nothing pushed
+        });
+
+        it('takes RET cc when the condition is met', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0xCD, 0x00, 0x20], 0x0100); // CALL 0x2000
+                rom.set([0xC8], 0x2000);             // RET Z
+            });
+            cpu.step();
+            cpu.flagZ = true;
+            expect(cpu.step()).toBe(20);
+            expect(cpu.pc).toBe(0x0103);
+        });
+
+        it('skips RET cc when the condition is not met', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0xC8; }); // RET Z
+            cpu.flagZ = false;
+            expect(cpu.step()).toBe(8);
+            expect(cpu.pc).toBe(0x0101);
+            expect(cpu.sp).toBe(0xFFFE); // nothing popped
+        });
+
+        it('executes JP cc, nn', () => {
+            const cpu = makeCpu((rom) => { rom.set([0xDA, 0x00, 0x20], 0x0100); }); // JP C, 0x2000
+            cpu.flagC = true;
+            expect(cpu.step()).toBe(16);
+            expect(cpu.pc).toBe(0x2000);
+        });
+
+
     });
 });

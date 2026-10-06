@@ -521,12 +521,37 @@ export class Cpu {
                 this.pc = this.pop16();
                 return 16;
 
+            case 0xC0:
+            case 0xC8:
+            case 0xD0:
+            case 0xD8: { // RET cc
+                const cc = (opcode >> 3) & 0x03;
+                if (this.condition(cc)) {
+                    this.pc = this.pop16();
+                    return 20;
+                }
+                return 8;
+            }
+
             case 0xC1:
             case 0xD1:
             case 0xE1:
             case 0xF1: { // POP rr
                 const p = (opcode >> 4) & 0x03;
                 this.setStackPair(p, this.pop16());
+                return 12;
+            }
+
+            case 0xC2:
+            case 0xCA:
+            case 0xD2:
+            case 0xDA: { // JP cc, nn
+                const target = this.fetch16();
+                const cc = (opcode >> 3) & 0x03;
+                if (this.condition(cc)) {
+                    this.pc = target;
+                    return 16;
+                }
                 return 12;
             }
 
@@ -544,6 +569,20 @@ export class Cpu {
                 this.push16(this.pc);
                 this.pc = target;
                 return 24;
+            }
+
+            case 0xC4:
+            case 0xCC:
+            case 0xD4:
+            case 0xDC: { // CALL cc, nn
+                const address = this.fetch16();
+                const conditionCode = (opcode >> 3) & 0x03;
+                if (this.condition(conditionCode)) {
+                    this.push16(this.pc);
+                    this.pc = address;
+                    return 24;
+                }
+                return 12;
             }
 
             case 0xC6:

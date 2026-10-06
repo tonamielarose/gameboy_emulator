@@ -381,6 +381,44 @@ describe('Cpu', () => {
             expect(cpu.pc).toBe(0x2000);
         });
 
+        it('executes INC r with half carry', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x2C; }); // INC L
+            cpu.l = 0x0F;
+            expect(cpu.step()).toBe(4);
+            expect(cpu.l).toBe(0x10);
+            expect(cpu.flagH).toBe(true);
+            expect(cpu.flagN).toBe(false);
+        });
 
+        it('does not change C on INC r', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x3C; }); // INC A
+            cpu.a = 0xFF;
+            cpu.flagC = false;
+            cpu.step();
+            expect(cpu.a).toBe(0x00);
+            expect(cpu.flagZ).toBe(true);
+            expect(cpu.flagC).toBe(false); // overflowed, but C is untouched
+        });
+
+        it('executes DEC r', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x05; }); // DEC B
+            cpu.b = 0x01;
+            cpu.step();
+            expect(cpu.b).toBe(0x00);
+            expect(cpu.flagZ).toBe(true);
+            expect(cpu.flagN).toBe(true);
+        });
+
+        it('executes DEC (HL)', () => {
+            const cpu = makeCpu((rom) => {
+                rom.set([0x35], 0x0100); // DEC (HL)
+                rom.set([0x7E], 0x0101); // LD A, (HL), to read it back
+            });
+            cpu.hl = 0xC000;           // WRAM starts at 0x00
+            expect(cpu.step()).toBe(12);
+            cpu.step();
+            expect(cpu.a).toBe(0xFF);  // 0x00 - 1 wraps to 0xFF
+            expect(cpu.flagH).toBe(true);
+        });
     });
 });

@@ -442,6 +442,44 @@ export class Cpu {
                 return 8;
             }
 
+            case 0x04:
+            case 0x0C:
+            case 0x14:
+            case 0x1C:
+            case 0x24:
+            case 0x2C:
+            case 0x34:
+            case 0x3C: { // INC r
+                const r = (opcode >> 3) & 0x07;
+                const value = this.getRegister(r);
+                const result = (value + 1) & 0xFF;
+                this.flagZ = result === 0;
+                this.flagN = false;
+                this.flagH = (value & 0x0F) === 0x0F;
+                // C is not affected
+                this.setRegister(r, result);
+                return r === 6 ? 12 : 4;
+            }
+
+            case 0x05:
+            case 0x0D:
+            case 0x15:
+            case 0x1D:
+            case 0x25:
+            case 0x2D:
+            case 0x35:
+            case 0x3D: { // DEC r
+                const r = (opcode >> 3) & 0x07;
+                const value = this.getRegister(r);
+                const result = (value - 1) & 0xFF;
+                this.flagZ = result === 0;
+                this.flagN = true;
+                this.flagH = (value & 0x0F) === 0x00;
+                // C is not affected
+                this.setRegister(r, result);
+                return r === 6 ? 12 : 4;
+            }
+
             case 0x0B:
             case 0x1B:
             case 0X2B:

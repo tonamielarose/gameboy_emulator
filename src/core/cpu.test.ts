@@ -295,5 +295,19 @@ describe('Cpu', () => {
             expect(cpu.a).toBe(0x00);
             expect(cpu.flagZ).toBe(true);
         });
+
+        it('takes JR cc, e when the condition is met', () => {
+            const cpu = makeCpu((rom) => { rom.set([0x28, 0x05], 0x0100); }); // JR Z, +5
+            cpu.flagZ = true;
+            expect(cpu.step()).toBe(12);
+            expect(cpu.pc).toBe(0x0107);
+        });
+
+        it('skips JR cc, e when the condition is not met', () => {
+            const cpu = makeCpu((rom) => { rom.set([0x20, 0x05], 0x0100); }); // JR NZ, +5
+            cpu.flagZ = true;
+            expect(cpu.step()).toBe(8);
+            expect(cpu.pc).toBe(0x0102); // continues after the operand
+        });
     });
 });

@@ -289,7 +289,7 @@ export class Cpu {
                 return value;
             }
             case 3: {
-                const value= this.hl;
+                const value = this.hl;
                 this.hl -= 1;
                 return value;
             }
@@ -339,7 +339,7 @@ export class Cpu {
      * by index: 0=ADD, 1=ADC, 2=SUB, 3=SBC, 4=AND, 5=XOR, 6=OR, 7=CP.
      * The result goes into A (except CP) and the flags are updated.
      */
-    private alu(op:number, value:number): void {
+    private alu(op: number, value: number): void {
         switch (op) {
             case 4: // AND
                 this.a = this.a & value;
@@ -364,6 +364,25 @@ export class Cpu {
                 break;
             default:
                 throw new Error(`ALU operation ${op} not implemented`);
+        }
+    }
+
+    /**
+     * Evaluates a jump condition by its index in the opcode encoding:
+     * 0=NZ, 1=Z, 2=NC, 3=C.
+     */
+    private condition(index: number): boolean {
+        switch (index) {
+            case 0: // NZ
+                return !this.flagZ;
+            case 1: // Z
+                return this.flagZ;
+            case 2: // NC
+                return !this.flagC;
+            case 3: // C
+                return this.flagC;
+            default:
+                throw new Error(`Invalid condition index ${index}`);
         }
     }
 
@@ -402,7 +421,7 @@ export class Cpu {
             case 0x23:
             case 0x33: { // INC rr
                 const p = (opcode >> 4) & 0x03;
-                this.setPair(p, this.getPair(p)+1);
+                this.setPair(p, this.getPair(p) + 1);
                 return 8;
             }
 
@@ -411,7 +430,7 @@ export class Cpu {
             case 0X2B:
             case 0X3B: { // DEC rr
                 const p = (opcode >> 4) & 0x03;
-                this.setPair(p, this.getPair(p)-1);
+                this.setPair(p, this.getPair(p) - 1);
                 return 8;
             }
 
@@ -449,23 +468,42 @@ export class Cpu {
             case 0x11: // LD DE, nn
                 this.de = this.fetch16();
                 return 12;
+
             case 0x18: { // JR e
                 const offset = toSigned8(this.fetch8());
                 this.pc = (this.pc + offset) & 0xFFFF;
                 return 12;
             }
+
+            case 0x20:
+            case 0x28:
+            case 0x30:
+            case 0x38: { // JR cc, e
+                const offset = toSigned8(this.fetch8());
+                const conditionNumber = (opcode >> 3) & 0x03;
+                if (this.condition(conditionNumber)) {
+                    this.pc = (this.pc + offset) & 0xFFFF;
+                    return 12;
+                }
+                return 8;
+            }
+
             case 0x21: // LD HL, nn
                 this.hl = this.fetch16();
                 return 12;
+
             case 0x31: // LD SP, nn
                 this.sp = this.fetch16();
                 return 12;
+
             case 0xC3: // JP nn
                 this.pc = this.fetch16();
                 return 16;
+
             case 0xC9: // RET
                 this.pc = this.pop16();
                 return 16;
+
             case 0xC1:
             case 0xD1:
             case 0xE1:
@@ -474,6 +512,7 @@ export class Cpu {
                 this.setStackPair(p, this.pop16());
                 return 12;
             }
+
             case 0xC5:
             case 0xD5:
             case 0xE5:
@@ -482,27 +521,34 @@ export class Cpu {
                 this.push16(this.getStackPair(p));
                 return 16;
             }
+
             case 0xCD: { // CALL nn
                 const target = this.fetch16();
                 this.push16(this.pc);
                 this.pc = target;
                 return 24;
             }
+
             case 0xE0: // LDH (n), A
                 this.mmu.write(this.fetch8() + 0xFF00, this.a);
                 return 12;
+
             case 0xEA: // LD (nn), A
                 this.mmu.write(this.fetch16(), this.a);
                 return 16;
+
             case 0xF0: // LDH A, (n)
                 this.a = this.mmu.read(this.fetch8() + 0xFF00);
                 return 12;
+
             case 0xF3: // DI
                 this.ime = false;
                 return 4;
+
             case 0xFA: // LD A, (nn)
                 this.a = this.mmu.read(this.fetch16());
                 return 16;
+
             default:
                 throw new Error(`Unknown opcode 0x${hex(opcode, 2)} at 0x${hex((this.pc - 1) & 0xFFFF, 4)}`);
         }

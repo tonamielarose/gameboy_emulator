@@ -433,6 +433,33 @@ export class Cpu {
     }
 
     /**
+     * Executes a CB-prefixed instruction (rotations, shifts, BIT, RES, SET)
+     * and returns its T-cycles, prefix included.
+     */
+    private executeCb(): number {
+        const byte = this.fetch8();
+        const group = (byte >> 6) & 0x03;
+        const index = (byte >> 3) & 0x07;
+        const reg = byte & 0x07;
+        const value = this.getRegister(reg);
+        switch (group) {
+            case 1: // BIT
+                this.flagZ = ((value >> index) & 1) === 0;
+                this.flagN = false;
+                this.flagH = true;
+                return reg === 6 ? 12 : 8;
+            case 2: // RES
+                this.setRegister(reg, value & ~(1 << index));
+                return reg === 6 ? 16 : 8;
+            case 3: // SET
+                this.setRegister(reg, value | (1 << index));
+                return reg === 6 ? 16 : 8;
+            default:
+                throw new Error(`CB group ${group} not implemented`);
+        }
+    }
+
+    /**
      * Executes one instruction at PC and returns the number of T-cycles it took.
      * Throws on opcodes that are not implemented yet.
      *
@@ -630,6 +657,9 @@ export class Cpu {
                 this.push16(this.getStackPair(p));
                 return 16;
             }
+
+            case 0xCB: // CB prefix
+                return this.executeCb();
 
             case 0xCD: { // CALL nn
                 const target = this.fetch16();

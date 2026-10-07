@@ -452,5 +452,41 @@ describe('Cpu', () => {
             expect(cpu.flagC).toBe(true); // borrow
             expect(cpu.flagH).toBe(true); // 0x0 - 0x0 - 1 < 0
         });
+
+        describe('CB prefix', () => {
+            it('executes BIT b, r', () => {
+                const cpu = makeCpu((rom) => {
+                    rom.set([0xCB, 0x7C], 0x0100); // BIT 7, H
+                    rom.set([0xCB, 0x74], 0x0102); // BIT 6, H
+                });
+                cpu.h = 0x80;           // 1000 0000
+                cpu.flagC = true;
+                expect(cpu.step()).toBe(8);
+                expect(cpu.flagZ).toBe(false); // bit 7 is 1
+                cpu.step();
+                expect(cpu.flagZ).toBe(true);  // bit 6 is 0
+                expect(cpu.flagH).toBe(true);
+                expect(cpu.flagC).toBe(true);  // untouched
+                expect(cpu.h).toBe(0x80);      // register unchanged
+            });
+
+            it('executes RES b, r', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xCB, 0x87], 0x0100); }); // RES 0, A
+                cpu.a = 0xFF;
+                expect(cpu.step()).toBe(8);
+                expect(cpu.a).toBe(0xFE);
+            });
+
+            it('executes SET b, (HL)', () => {
+                const cpu = makeCpu((rom) => {
+                    rom.set([0xCB, 0xDE], 0x0100); // SET 3, (HL)
+                    rom.set([0x7E], 0x0102);       // LD A, (HL), to read it back
+                });
+                cpu.hl = 0xC000;
+                expect(cpu.step()).toBe(16);
+                cpu.step();
+                expect(cpu.a).toBe(0x08);      // 0000 1000
+            });
+        });
     });
 });

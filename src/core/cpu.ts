@@ -341,12 +341,41 @@ export class Cpu {
      */
     private alu(op: number, value: number): void {
         switch (op) {
+            case 0: { // ADD
+                const result = (this.a + value) & 0xFF;
+                this.flagZ = result === 0;
+                this.flagN = false;
+                this.flagH = (this.a & 0x0F) + (value & 0x0F) > 0x0F;
+                this.flagC = this.a + value > 0xFF;
+                this.a = result;
+                break;
+            }
+            case 1: { // ADC
+                const carry = this.flagC ? 1 : 0;
+                const result = (this.a + value + carry) & 0xFF;
+                this.flagZ = result === 0;
+                this.flagN = false;
+                this.flagH = (this.a & 0x0F) + (value & 0x0F) + carry > 0x0F;
+                this.flagC = this.a + value + carry > 0xFF;
+                this.a = result;
+                break;
+            }
             case 2: {// SUB
                 const result = (this.a - value) & 0xFF;
                 this.flagZ = result === 0;
                 this.flagN = true;
                 this.flagH = (this.a & 0x0F) < (value & 0x0F);
                 this.flagC = this.a < value;
+                this.a = result;
+                break;
+            }
+            case 3: { // SBC
+                const carry = this.flagC ? 1 : 0;
+                const result = (this.a - value - carry) & 0xFF;
+                this.flagZ = result === 0;
+                this.flagN = true;
+                this.flagH = (this.a & 0x0F) - (value & 0x0F) - carry < 0;
+                this.flagC = this.a - value - carry < 0;
                 this.a = result;
                 break;
             }

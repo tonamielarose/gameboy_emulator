@@ -420,5 +420,37 @@ describe('Cpu', () => {
             expect(cpu.a).toBe(0xFF);  // 0x00 - 1 wraps to 0xFF
             expect(cpu.flagH).toBe(true);
         });
+
+        it('executes ADD r with carries', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x80; }); // ADD A, B
+            cpu.a = 0xFF;
+            cpu.b = 0x01;
+            cpu.step();
+            expect(cpu.a).toBe(0x00);
+            expect(cpu.flagZ).toBe(true);
+            expect(cpu.flagH).toBe(true); // 0xF + 0x1 overflows the low nibble
+            expect(cpu.flagC).toBe(true); // 0xFF + 0x01 overflows the byte
+        });
+
+        it('adds the carry on ADC', () => {
+            const cpu = makeCpu((rom) => { rom.set([0xCE, 0x0E], 0x0100); }); // ADC A, 0x0E
+            cpu.a = 0x01;
+            cpu.flagC = true;
+            cpu.step();
+            expect(cpu.a).toBe(0x10);     // 0x01 + 0x0E + 1
+            expect(cpu.flagH).toBe(true); // 0x1 + 0xE + 1 overflows the low nibble
+            expect(cpu.flagC).toBe(false);
+        });
+
+        it('subtracts the carry on SBC', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x98; }); // SBC A, B
+            cpu.a = 0x10;
+            cpu.b = 0x10;
+            cpu.flagC = true;
+            cpu.step();
+            expect(cpu.a).toBe(0xFF);     // 0x10 - 0x10 - 1
+            expect(cpu.flagC).toBe(true); // borrow
+            expect(cpu.flagH).toBe(true); // 0x0 - 0x0 - 1 < 0
+        });
     });
 });

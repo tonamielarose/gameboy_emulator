@@ -1,5 +1,8 @@
 import type {Mmu} from "./mmu.ts";
 
+const IE_ADDRESS = 0xFFFF;
+const IF_ADDRESS = 0xFF0F;
+
 /** Formats a number as uppercase hexadecimal, padded to the given number of digits. */
 function hex(value: number, digits: number): string {
     return value.toString(16).toUpperCase().padStart(digits, '0');
@@ -508,6 +511,12 @@ export class Cpu {
      * @see https://gbdev.io/gb-opcodes/optables/ for opcodes, timings and flags.
      */
     step(): number {
+
+        const interruptCycles = this.handleInterrupts();
+        if (interruptCycles > 0) {
+            return interruptCycles;
+        }
+
         if (this.imePending) {
             this.imePending = false;
             this.ime = true;
@@ -915,5 +924,36 @@ export class Cpu {
             default:
                 throw new Error(`Invalid CB group ${group}`);
         }
+    }
+
+    /**
+     * Services the highest-priority pending interrupt, if IME allows it:
+     * clears its IF bit, pushes PC and jumps to its handler (0x40 + bit × 8).
+     * Returns the T-cycles spent (20), or 0 if no interrupt was serviced.
+     */
+    private handleInterrupts(): number {
+        if (!this.ime) {
+            return 0;
+        }
+
+        const ie = this.mmu.read(IE_ADDRESS);
+        const iff = this.mmu.read(IF_ADDRESS);
+        const pending = ie & iff & 0x1F;
+
+        if (pending === 0) {
+            return 0;
+        }
+
+        for (let bit = 0; bit < 5; bit++) {
+            if (pending & (1 << bit)) {
+                this.ime = false;
+                this.mmu.write(IF_ADDRESS, iff & ~(1 << bit));
+                this.push16(this.pc);
+                this.pc = 0x0040 + bit * 8;
+                return 20;
+            }
+        }
+
+        return 0;
     }
 }

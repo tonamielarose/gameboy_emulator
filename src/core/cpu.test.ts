@@ -703,5 +703,39 @@ describe('Cpu', () => {
                 expect(cpu.ime).toBe(true);     // enabled immediately
             });
         });
+
+        describe('interrupts', () => {
+            it('services a pending and enabled interrupt', () => {
+                const cpu = makeCpu();
+                cpu.ime = true;
+                cpu.pc = 0x0150;
+                // enable and request the timer interrupt (bit 2) through the bus
+                cpu['mmu'].write(0xFFFF, 0x04);
+                cpu['mmu'].write(0xFF0F, 0x04);
+                expect(cpu.step()).toBe(20);
+                expect(cpu.pc).toBe(0x0050);              // timer handler
+                expect(cpu.ime).toBe(false);
+                expect(cpu.sp).toBe(0xFFFC);              // return address pushed
+                expect(cpu['mmu'].read(0xFF0F)).toBe(0x00); // request acknowledged
+            });
+
+            it('services the lowest bit first', () => {
+                const cpu = makeCpu();
+                cpu.ime = true;
+                cpu['mmu'].write(0xFFFF, 0x1F);
+                cpu['mmu'].write(0xFF0F, 0x05);           // VBlank (bit 0) and timer (bit 2)
+                cpu.step();
+                expect(cpu.pc).toBe(0x0040);              // VBlank wins
+                expect(cpu['mmu'].read(0xFF0F)).toBe(0x04); // timer still pending
+            });
+
+            it('ignores interrupts while IME is off', () => {
+                const cpu = makeCpu((rom) => { rom[0x0100] = 0x00; }); // NOP
+                cpu['mmu'].write(0xFFFF, 0x01);
+                cpu['mmu'].write(0xFF0F, 0x01);
+                expect(cpu.step()).toBe(4);               // just the NOP
+                expect(cpu.pc).toBe(0x0101);
+            });
+        });
     });
 });

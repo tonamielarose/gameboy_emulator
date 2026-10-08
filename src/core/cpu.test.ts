@@ -585,6 +585,23 @@ describe('Cpu', () => {
                 expect(cpu.step()).toBe(4);
                 expect(cpu.pc).toBe(0x2000);
             });
+
+            it('executes LD HL, SP+e with a negative offset', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xF8, 0xFF], 0x0100); }); // LD HL, SP-1
+                cpu.sp = 0x00FF;
+                expect(cpu.step()).toBe(12);
+                expect(cpu.hl).toBe(0x00FE);    // 0x00FF - 1
+                expect(cpu.flagC).toBe(true);   // 0xFF + 0xFF (raw bytes) overflows 8 bits
+                expect(cpu.flagH).toBe(true);   // 0xF + 0xF overflows 4 bits
+                expect(cpu.sp).toBe(0x00FF);    // SP unchanged
+            });
+
+            it('executes ADD SP, e', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xE8, 0x02], 0x0100); }); // ADD SP, +2
+                cpu.sp = 0xFFFE;
+                expect(cpu.step()).toBe(16);
+                expect(cpu.sp).toBe(0x0000);    // wraps around
+            });
         });
     });
 });

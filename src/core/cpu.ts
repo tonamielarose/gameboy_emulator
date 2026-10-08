@@ -518,6 +518,19 @@ export class Cpu {
     }
 
     /**
+     * Computes SP + a signed 8-bit offset read at PC, for ADD SP, e and LD HL, SP+e.
+     * Flags come from an unsigned 8-bit addition on SP's low byte.
+     */
+    private addSpSigned(): number {
+        const e = this.fetch8();
+        this.flagZ = false;
+        this.flagN = false;
+        this.flagH = (this.sp & 0x0F) + (e & 0x0F) > 0x0F;
+        this.flagC = (this.sp & 0xFF) + (e & 0xFF) > 0xFF;
+        return (this.sp + toSigned8(e)) & 0xFFFF;
+    }
+
+    /**
      * Executes one instruction at PC and returns the number of T-cycles it took.
      * Throws on opcodes that are not implemented yet.
      *
@@ -788,6 +801,10 @@ export class Cpu {
                 this.mmu.write(this.fetch16(), this.a);
                 return 16;
 
+            case 0xE8: // ADD SP, e
+                this.sp = this.addSpSigned();
+                return 16;
+
             case 0xF0: // LDH A, (n)
                 this.a = this.mmu.read(this.fetch8() + 0xFF00);
                 return 12;
@@ -795,6 +812,11 @@ export class Cpu {
             case 0xF3: // DI
                 this.ime = false;
                 return 4;
+
+            case 0xF8: {// LD HL, SP+e
+                this.hl = this.addSpSigned();
+                return 12;
+            }
 
             case 0xFA: // LD A, (nn)
                 this.a = this.mmu.read(this.fetch16());

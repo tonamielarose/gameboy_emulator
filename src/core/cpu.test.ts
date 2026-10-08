@@ -557,6 +557,16 @@ describe('Cpu', () => {
                 expect(cpu.a).toBe(0x21);
                 expect(cpu.flagC).toBe(false);  // SWAP always clears C
             });
+
+            it('clears Z on RRA even when the result is zero', () => {
+                const cpu = makeCpu((rom) => { rom[0x0100] = 0x1F; }); // RRA
+                cpu.a = 0x01;
+                cpu.flagC = false;
+                expect(cpu.step()).toBe(4);
+                expect(cpu.a).toBe(0x00);
+                expect(cpu.flagC).toBe(true);   // bit 0 went out into C
+                expect(cpu.flagZ).toBe(false);  // always cleared, unlike RR A
+            });
         });
     });
 });

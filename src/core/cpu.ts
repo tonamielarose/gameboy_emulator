@@ -625,6 +625,16 @@ export class Cpu {
                 return 8;
             }
 
+            case 0x07:
+            case 0x0F:
+            case 0x17:
+            case 0x1F: { // RLCA, RRCA, RLA, RRA
+                const op = (opcode >> 3) & 0x07;
+                this.a = this.rotateShift(op, this.a);
+                this.flagZ = false; // unlike the CB versions, Z is always cleared
+                return 4;
+            }
+
             case 0x0A:
             case 0x1A:
             case 0x2A:

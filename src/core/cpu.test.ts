@@ -487,6 +487,76 @@ describe('Cpu', () => {
                 cpu.step();
                 expect(cpu.a).toBe(0x08);      // 0000 1000
             });
+
+            it('executes RLC r', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xCB, 0x00], 0x0100); }); // RLC B
+                cpu.b = 0b1000_0001;
+                expect(cpu.step()).toBe(8);
+                expect(cpu.b).toBe(0b0000_0011); // bit 7 wraps around to bit 0
+                expect(cpu.flagC).toBe(true);
+            });
+
+            it('rotates through the carry on RL r', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xCB, 0x11], 0x0100); }); // RL C
+                cpu.c = 0b1000_0000;
+                cpu.flagC = false;
+                cpu.step();
+                expect(cpu.c).toBe(0x00);       // the old carry (0) entered bit 0
+                expect(cpu.flagZ).toBe(true);
+                expect(cpu.flagC).toBe(true);   // bit 7 went out into C
+            });
+
+            it('keeps the sign bit on SRA r', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xCB, 0x2F], 0x0100); }); // SRA A
+                cpu.a = 0b1000_0010;
+                cpu.step();
+                expect(cpu.a).toBe(0b1100_0001);
+                expect(cpu.flagC).toBe(false);
+            });
+
+            it('executes SWAP r', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xCB, 0x37], 0x0100); }); // SWAP A
+                cpu.a = 0x12;
+                cpu.flagC = true;
+                cpu.step();
+                expect(cpu.a).toBe(0x21);
+                expect(cpu.flagC).toBe(false);  // SWAP always clears C
+            });
+
+            it('executes RLC r', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xCB, 0x00], 0x0100); }); // RLC B
+                cpu.b = 0b1000_0001;
+                expect(cpu.step()).toBe(8);
+                expect(cpu.b).toBe(0b0000_0011); // bit 7 wraps around to bit 0
+                expect(cpu.flagC).toBe(true);
+            });
+
+            it('rotates through the carry on RL r', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xCB, 0x11], 0x0100); }); // RL C
+                cpu.c = 0b1000_0000;
+                cpu.flagC = false;
+                cpu.step();
+                expect(cpu.c).toBe(0x00);       // the old carry (0) entered bit 0
+                expect(cpu.flagZ).toBe(true);
+                expect(cpu.flagC).toBe(true);   // bit 7 went out into C
+            });
+
+            it('keeps the sign bit on SRA r', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xCB, 0x2F], 0x0100); }); // SRA A
+                cpu.a = 0b1000_0010;
+                cpu.step();
+                expect(cpu.a).toBe(0b1100_0001);
+                expect(cpu.flagC).toBe(false);
+            });
+
+            it('executes SWAP r', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xCB, 0x37], 0x0100); }); // SWAP A
+                cpu.a = 0x12;
+                cpu.flagC = true;
+                cpu.step();
+                expect(cpu.a).toBe(0x21);
+                expect(cpu.flagC).toBe(false);  // SWAP always clears C
+            });
         });
     });
 });

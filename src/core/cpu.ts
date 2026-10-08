@@ -443,6 +443,9 @@ export class Cpu {
         const reg = byte & 0x07;
         const value = this.getRegister(reg);
         switch (group) {
+            case 0:
+                this.setRegister(reg, this.rotateShift(index, value));
+                return reg === 6 ? 16 : 8;
             case 1: // BIT
                 this.flagZ = ((value >> index) & 1) === 0;
                 this.flagN = false;
@@ -455,8 +458,63 @@ export class Cpu {
                 this.setRegister(reg, value | (1 << index));
                 return reg === 6 ? 16 : 8;
             default:
-                throw new Error(`CB group ${group} not implemented`);
+                throw new Error(`Invalid CB group ${group}`);
         }
+    }
+
+
+    /**
+     * Performs one of the 8 rotate/shift operations and updates the flags:
+     * 0=RLC, 1=RRC, 2=RL, 3=RR, 4=SLA, 5=SRA, 6=SWAP, 7=SRL.
+     * Returns the 8-bit result.
+     */
+    private rotateShift(op: number, value: number): number {
+        const carry = this.flagC ? 1 : 0;
+        let result: number;
+        let carryOut: number;
+        switch (op) {
+            case 0: // RLC
+                result = (value << 1) | (value >> 7);
+                carryOut = (value >> 7) & 1;
+                break;
+            case 1: // RRC
+                result = (value >> 1) | ((value & 1) << 7);
+                carryOut = value & 1;
+                break;
+            case 2: // RL
+                result = (value << 1) | carry;
+                carryOut = (value >> 7) & 1;
+                break;
+            case 3: // RR
+                result = (value >> 1) | (carry << 7);
+                carryOut = value & 1;
+                break;
+            case 4: // SLA
+                result = value << 1;
+                carryOut = (value >> 7) & 1;
+                break;
+            case 5: // SRA
+                result = (value >> 1) | (value & 0x80);
+                carryOut = value & 1;
+                break;
+            case 6: // SWAP
+                result = ((value & 0x0F) << 4) | (value >> 4);
+                carryOut = 0;
+                break;
+            case 7: // SRL
+                result = value >> 1;
+                carryOut = value & 1;
+                break;
+            default:
+                throw new Error(`Invalid rotate/shift operation ${op}`);
+        }
+
+        result = result & 0xFF;
+        this.flagZ = result === 0;
+        this.flagN = false;
+        this.flagH = false;
+        this.flagC = carryOut === 1;
+        return result;
     }
 
     /**

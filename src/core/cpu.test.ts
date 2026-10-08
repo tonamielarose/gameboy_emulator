@@ -638,6 +638,51 @@ describe('Cpu', () => {
                 cpu.step();
                 expect(cpu.a).toBe(0x15);       // corrected: 15
             });
+
+            it('executes CPL', () => {
+                const cpu = makeCpu((rom) => { rom[0x0100] = 0x2F; });
+                cpu.a = 0b1010_0101;
+                expect(cpu.step()).toBe(4);
+                expect(cpu.a).toBe(0b0101_1010);
+                expect(cpu.flagN).toBe(true);
+                expect(cpu.flagH).toBe(true);
+            });
+
+            it('executes SCF and CCF', () => {
+                const cpu = makeCpu((rom) => { rom.set([0x37, 0x3F], 0x0100); }); // SCF, CCF
+                cpu.step();
+                expect(cpu.flagC).toBe(true);
+                cpu.step();
+                expect(cpu.flagC).toBe(false);
+            });
+
+            it('executes LD (nn), SP', () => {
+                const cpu = makeCpu((rom) => {
+                    rom.set([0x08, 0x00, 0xC0], 0x0100); // LD (0xC000), SP
+                    rom.set([0xFA, 0x00, 0xC0], 0x0103); // LD A, (0xC000), to read the low byte
+                });
+                cpu.sp = 0x1234;
+                expect(cpu.step()).toBe(20);
+                cpu.step();
+                expect(cpu.a).toBe(0x34);       // low byte first (little endian)
+            });
+
+            it('executes LDH (C), A and LDH A, (C)', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xE2, 0xF2], 0x0100); });
+                cpu.c = 0x80;                   // register C → address 0xFF80
+                cpu.a = 0x42;
+                expect(cpu.step()).toBe(8);
+                cpu.a = 0x00;
+                cpu.step();
+                expect(cpu.a).toBe(0x42);
+            });
+
+            it('executes RST', () => {
+                const cpu = makeCpu((rom) => { rom[0x0100] = 0xEF; }); // RST 0x28
+                expect(cpu.step()).toBe(16);
+                expect(cpu.pc).toBe(0x0028);
+                expect(cpu.sp).toBe(0xFFFC);    // return address pushed
+            });
         });
     });
 });

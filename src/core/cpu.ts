@@ -648,6 +648,10 @@ export class Cpu {
                 return 4;
             }
 
+            case 0x08: // LD (nn), SP
+                this.mmu.write16(this.fetch16(), this.sp);
+                return 20;
+
             case 0x09:
             case 0x19:
             case 0x29:
@@ -725,9 +729,28 @@ export class Cpu {
                 return 4;
             }
 
+            case 0x2F: // CPL
+                this.a = ~this.a & 0xFF;
+                this.flagN = true;
+                this.flagH = true;
+                return 4;
+
             case 0x31: // LD SP, nn
                 this.sp = this.fetch16();
                 return 12;
+
+            case 0x37: // SCF
+                this.flagC = true;
+                this.flagN = false;
+                this.flagH = false;
+                this.flagC = true;
+                return 4;
+
+            case 0x3F: // CCF
+                this.flagN = false;
+                this.flagH = false;
+                this.flagC = !this.flagC;
+                return 4;
 
             case 0xC3: // JP nn
                 this.pc = this.fetch16();
@@ -817,9 +840,25 @@ export class Cpu {
                 return 8;
             }
 
+            case 0xC7:
+            case 0xCF:
+            case 0xD7:
+            case 0xDF:
+            case 0xE7:
+            case 0xEF:
+            case 0xF7:
+            case 0xFF: // CALL
+                this.push16(this.pc);
+                this.pc = opcode & 0x38
+                return 16;
+
             case 0xE0: // LDH (n), A
                 this.mmu.write(this.fetch8() + 0xFF00, this.a);
                 return 12;
+
+            case 0xE2: // LDH (C), A
+                this.mmu.write(0xFF00 + this.c, this.a);
+                return 8;
 
             case 0xE9: // JP (HL)
                 this.pc = this.hl;
@@ -837,6 +876,10 @@ export class Cpu {
                 this.a = this.mmu.read(this.fetch8() + 0xFF00);
                 return 12;
 
+            case 0xF2: // LDH A, (C)
+                this.a = this.mmu.read(0xFF00 + this.c);
+                return 8;
+
             case 0xF3: // DI
                 this.ime = false;
                 return 4;
@@ -845,6 +888,10 @@ export class Cpu {
                 this.hl = this.addSpSigned();
                 return 12;
             }
+
+            case 0xF9: // LD SP, HL
+                this.sp = this.hl;
+                return 8;
 
             case 0xFA: // LD A, (nn)
                 this.a = this.mmu.read(this.fetch16());

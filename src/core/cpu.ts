@@ -92,6 +92,42 @@ export class Cpu {
         this.l = value & 0xFF;
     }
 
+    /** Zero flag (bit 7 of F): set when the last result was zero. */
+    get flagZ(): boolean {
+        return (this.f & 0x80) !== 0;
+    }
+
+    set flagZ(value: boolean) {
+        this.f = value ? this.f | 0x80 : this.f & ~0x80 & 0xFF;
+    }
+
+    /** Subtract flag (bit 6 of F): set when the last operation was a subtraction. */
+    get flagN(): boolean {
+        return (this.f & 0x40) !== 0;
+    }
+
+    set flagN(value: boolean) {
+        this.f = value ? this.f | 0x40 : this.f & ~0x40 & 0xFF;
+    }
+
+    /** Half-carry flag (bit 5 of F): set on a carry from bit 3 to bit 4. */
+    get flagH(): boolean {
+        return (this.f & 0x20) !== 0;
+    }
+
+    set flagH(value: boolean) {
+        this.f = value ? this.f | 0x20 : this.f & ~0x20 & 0xFF;
+    }
+
+    /** Carry flag (bit 4 of F): set when the last result overflowed 8 bits. */
+    get flagC(): boolean {
+        return (this.f & 0x10) !== 0;
+    }
+
+    set flagC(value: boolean) {
+        this.f = value ? this.f | 0x10 : this.f & ~0x10 & 0xFF;
+    }
+
     /**
      * Reads the byte at PC and advances PC by one.
      */
@@ -108,6 +144,50 @@ export class Cpu {
         const value = this.mmu.read16(this.pc);
         this.pc = (this.pc + 2) & 0xFFFF;
         return value;
+    }
+
+    /**
+     * Pushes a 16-bit value onto the stack (the stack grows downwards).
+     */
+    private push16(value: number): void {
+        this.sp = (this.sp - 2) & 0xFFFF;
+        this.mmu.write16(this.sp, value);
+    }
+
+    /**
+     * Pops a 16-bit value from the stack.
+     */
+    private pop16(): number {
+        const value = this.mmu.read16(this.sp);
+        this.sp = (this.sp + 2) & 0xFFFF;
+        return value;
+    }
+
+    /**
+     * Reads an 8-bit register by its index in the opcode encoding:
+     * 0=B, 1=C, 2=D, 3=E, 4=H, 5=L, 6=(HL) (memory at address HL), 7=A.
+     */
+    private getRegister(index: number): number {
+        switch (index) {
+            case 0:
+                return this.b;
+            case 1:
+                return this.c;
+            case 2:
+                return this.d;
+            case 3:
+                return this.e;
+            case 4:
+                return this.h;
+            case 5:
+                return this.l;
+            case 6:
+                return this.mmu.read(this.hl);
+            case 7:
+                return this.a;
+            default:
+                throw new Error(`Invalid register index ${index}`);
+        }
     }
 
     /**
@@ -144,92 +224,6 @@ export class Cpu {
             default:
                 throw new Error(`Invalid register index ${index}`);
         }
-    }
-
-    /**
-     * Reads an 8-bit register by its index in the opcode encoding:
-     * 0=B, 1=C, 2=D, 3=E, 4=H, 5=L, 6=(HL) (memory at address HL), 7=A.
-     */
-    private getRegister(index: number): number {
-        switch (index) {
-            case 0:
-                return this.b;
-            case 1:
-                return this.c;
-            case 2:
-                return this.d;
-            case 3:
-                return this.e;
-            case 4:
-                return this.h;
-            case 5:
-                return this.l;
-            case 6:
-                return this.mmu.read(this.hl);
-            case 7:
-                return this.a;
-            default:
-                throw new Error(`Invalid register index ${index}`);
-        }
-    }
-
-    /**
-     * Reads a register pair by its index in stack instructions (PUSH, POP):
-     * 0=BC, 1=DE, 2=HL, 3=AF.
-     */
-    private getStackPair(index: number): number {
-        switch (index) {
-            case 0:
-                return this.bc;
-            case 1:
-                return this.de;
-            case 2:
-                return this.hl;
-            case 3:
-                return this.af;
-            default:
-                throw new Error(`Invalid pair index ${index}`);
-        }
-    }
-
-    /**
-     * Writes a register pair by its index in stack instructions (PUSH, POP):
-     * 0=BC, 1=DE, 2=HL, 3=AF.
-     */
-    private setStackPair(index: number, value: number) {
-        switch (index) {
-            case 0:
-                this.bc = value;
-                break;
-            case 1:
-                this.de = value;
-                break;
-            case 2:
-                this.hl = value;
-                break;
-            case 3:
-                this.af = value;
-                break;
-            default:
-                throw new Error(`Invalid pair index ${index}`);
-        }
-    }
-
-    /**
-     * Pushes a 16-bit value onto the stack (the stack grows downwards).
-     */
-    private push16(value: number): void {
-        this.sp = (this.sp - 2) & 0xFFFF;
-        this.mmu.write16(this.sp, value);
-    }
-
-    /**
-     * Pops a 16-bit value from the stack.
-     */
-    private pop16(): number {
-        const value = this.mmu.read16(this.sp);
-        this.sp = (this.sp + 2) & 0xFFFF;
-        return value;
     }
 
     /**
@@ -276,6 +270,48 @@ export class Cpu {
     }
 
     /**
+     * Reads a register pair by its index in stack instructions (PUSH, POP):
+     * 0=BC, 1=DE, 2=HL, 3=AF.
+     */
+    private getStackPair(index: number): number {
+        switch (index) {
+            case 0:
+                return this.bc;
+            case 1:
+                return this.de;
+            case 2:
+                return this.hl;
+            case 3:
+                return this.af;
+            default:
+                throw new Error(`Invalid pair index ${index}`);
+        }
+    }
+
+    /**
+     * Writes a register pair by its index in stack instructions (PUSH, POP):
+     * 0=BC, 1=DE, 2=HL, 3=AF.
+     */
+    private setStackPair(index: number, value: number) {
+        switch (index) {
+            case 0:
+                this.bc = value;
+                break;
+            case 1:
+                this.de = value;
+                break;
+            case 2:
+                this.hl = value;
+                break;
+            case 3:
+                this.af = value;
+                break;
+            default:
+                throw new Error(`Invalid pair index ${index}`);
+        }
+    }
+
+    /**
      * Returns the memory address used by (BC), (DE), (HL+) and (HL-) operands,
      * by index: 0=BC, 1=DE, 2=HL then increment, 3=HL then decrement.
      */
@@ -300,40 +336,23 @@ export class Cpu {
         }
     }
 
-    /** Zero flag (bit 7 of F): set when the last result was zero. */
-    get flagZ(): boolean {
-        return (this.f & 0x80) !== 0;
-    }
-
-    set flagZ(value: boolean) {
-        this.f = value ? this.f | 0x80 : this.f & ~0x80 & 0xFF;
-    }
-
-    /** Subtract flag (bit 6 of F): set when the last operation was a subtraction. */
-    get flagN(): boolean {
-        return (this.f & 0x40) !== 0;
-    }
-
-    set flagN(value: boolean) {
-        this.f = value ? this.f | 0x40 : this.f & ~0x40 & 0xFF;
-    }
-
-    /** Half-carry flag (bit 5 of F): set on a carry from bit 3 to bit 4. */
-    get flagH(): boolean {
-        return (this.f & 0x20) !== 0;
-    }
-
-    set flagH(value: boolean) {
-        this.f = value ? this.f | 0x20 : this.f & ~0x20 & 0xFF;
-    }
-
-    /** Carry flag (bit 4 of F): set when the last result overflowed 8 bits. */
-    get flagC(): boolean {
-        return (this.f & 0x10) !== 0;
-    }
-
-    set flagC(value: boolean) {
-        this.f = value ? this.f | 0x10 : this.f & ~0x10 & 0xFF;
+    /**
+     * Evaluates a jump condition by its index in the opcode encoding:
+     * 0=NZ, 1=Z, 2=NC, 3=C.
+     */
+    private condition(index: number): boolean {
+        switch (index) {
+            case 0: // NZ
+                return !this.flagZ;
+            case 1: // Z
+                return this.flagZ;
+            case 2: // NC
+                return !this.flagC;
+            case 3: // C
+                return this.flagC;
+            default:
+                throw new Error(`Invalid condition index ${index}`);
+        }
     }
 
     /**
@@ -414,56 +433,6 @@ export class Cpu {
                 throw new Error(`ALU operation ${op} not implemented`);
         }
     }
-
-    /**
-     * Evaluates a jump condition by its index in the opcode encoding:
-     * 0=NZ, 1=Z, 2=NC, 3=C.
-     */
-    private condition(index: number): boolean {
-        switch (index) {
-            case 0: // NZ
-                return !this.flagZ;
-            case 1: // Z
-                return this.flagZ;
-            case 2: // NC
-                return !this.flagC;
-            case 3: // C
-                return this.flagC;
-            default:
-                throw new Error(`Invalid condition index ${index}`);
-        }
-    }
-
-    /**
-     * Executes a CB-prefixed instruction (rotations, shifts, BIT, RES, SET)
-     * and returns its T-cycles, prefix included.
-     */
-    private executeCb(): number {
-        const byte = this.fetch8();
-        const group = (byte >> 6) & 0x03;
-        const index = (byte >> 3) & 0x07;
-        const reg = byte & 0x07;
-        const value = this.getRegister(reg);
-        switch (group) {
-            case 0:
-                this.setRegister(reg, this.rotateShift(index, value));
-                return reg === 6 ? 16 : 8;
-            case 1: // BIT
-                this.flagZ = ((value >> index) & 1) === 0;
-                this.flagN = false;
-                this.flagH = true;
-                return reg === 6 ? 12 : 8;
-            case 2: // RES
-                this.setRegister(reg, value & ~(1 << index));
-                return reg === 6 ? 16 : 8;
-            case 3: // SET
-                this.setRegister(reg, value | (1 << index));
-                return reg === 6 ? 16 : 8;
-            default:
-                throw new Error(`Invalid CB group ${group}`);
-        }
-    }
-
 
     /**
      * Performs one of the 8 rotate/shift operations and updates the flags:
@@ -563,9 +532,19 @@ export class Cpu {
         switch (opcode) {
             case 0x00: // NOP
                 return 4;
+
             case 0x01: // LD BC, nn
                 this.bc = this.fetch16();
                 return 12;
+
+            case 0x02:
+            case 0x12:
+            case 0x22:
+            case 0x32: { // LD (rr), A
+                const p = (opcode >> 4) & 0x03;
+                this.mmu.write(this.pointerAddress(p), this.a);
+                return 8;
+            }
 
             case 0x03:
             case 0x13:
@@ -614,15 +593,6 @@ export class Cpu {
                 return r === 6 ? 12 : 4;
             }
 
-            case 0x0B:
-            case 0x1B:
-            case 0X2B:
-            case 0X3B: { // DEC rr
-                const p = (opcode >> 4) & 0x03;
-                this.setPair(p, this.getPair(p) - 1);
-                return 8;
-            }
-
             case 0x06:
             case 0x0E:
             case 0x16:
@@ -634,15 +604,6 @@ export class Cpu {
                 const r = (opcode >> 3) & 0x07;
                 this.setRegister(r, this.fetch8());
                 return r === 6 ? 12 : 8;
-            }
-
-            case 0x02:
-            case 0x12:
-            case 0x22:
-            case 0x32: { // LD (rr), A
-                const p = (opcode >> 4) & 0x03;
-                this.mmu.write(this.pointerAddress(p), this.a);
-                return 8;
             }
 
             case 0x07:
@@ -678,6 +639,15 @@ export class Cpu {
             case 0x3A: { // LD A, (rr)
                 const p = (opcode >> 4) & 0x03;
                 this.a = this.mmu.read(this.pointerAddress(p));
+                return 8;
+            }
+
+            case 0x0B:
+            case 0x1B:
+            case 0X2B:
+            case 0X3B: { // DEC rr
+                const p = (opcode >> 4) & 0x03;
+                this.setPair(p, this.getPair(p) - 1);
                 return 8;
             }
 
@@ -758,14 +728,6 @@ export class Cpu {
                 this.flagC = !this.flagC;
                 return 4;
 
-            case 0xC3: // JP nn
-                this.pc = this.fetch16();
-                return 16;
-
-            case 0xC9: // RET
-                this.pc = this.pop16();
-                return 16;
-
             case 0xC0:
             case 0xC8:
             case 0xD0:
@@ -800,24 +762,9 @@ export class Cpu {
                 return 12;
             }
 
-            case 0xC5:
-            case 0xD5:
-            case 0xE5:
-            case 0xF5: { // PUSH rr
-                const p = (opcode >> 4) & 0x03;
-                this.push16(this.getStackPair(p));
+            case 0xC3: // JP nn
+                this.pc = this.fetch16();
                 return 16;
-            }
-
-            case 0xCB: // CB prefix
-                return this.executeCb();
-
-            case 0xCD: { // CALL nn
-                const target = this.fetch16();
-                this.push16(this.pc);
-                this.pc = target;
-                return 24;
-            }
 
             case 0xC4:
             case 0xCC:
@@ -831,6 +778,15 @@ export class Cpu {
                     return 24;
                 }
                 return 12;
+            }
+
+            case 0xC5:
+            case 0xD5:
+            case 0xE5:
+            case 0xF5: { // PUSH rr
+                const p = (opcode >> 4) & 0x03;
+                this.push16(this.getStackPair(p));
+                return 16;
             }
 
             case 0xC6:
@@ -858,6 +814,20 @@ export class Cpu {
                 this.pc = opcode & 0x38;
                 return 16;
 
+            case 0xC9: // RET
+                this.pc = this.pop16();
+                return 16;
+
+            case 0xCB: // CB prefix
+                return this.executeCb();
+
+            case 0xCD: { // CALL nn
+                const target = this.fetch16();
+                this.push16(this.pc);
+                this.pc = target;
+                return 24;
+            }
+
             case 0xD9: // RETI
                 this.pc = this.pop16();
                 this.ime = true;
@@ -871,16 +841,16 @@ export class Cpu {
                 this.mmu.write(0xFF00 + this.c, this.a);
                 return 8;
 
+            case 0xE8: // ADD SP, e
+                this.sp = this.addSpSigned();
+                return 16;
+
             case 0xE9: // JP (HL)
                 this.pc = this.hl;
                 return 4;
 
             case 0xEA: // LD (nn), A
                 this.mmu.write(this.fetch16(), this.a);
-                return 16;
-
-            case 0xE8: // ADD SP, e
-                this.sp = this.addSpSigned();
                 return 16;
 
             case 0xF0: // LDH A, (n)
@@ -914,6 +884,36 @@ export class Cpu {
 
             default:
                 throw new Error(`Unknown opcode 0x${hex(opcode, 2)} at 0x${hex((this.pc - 1) & 0xFFFF, 4)}`);
+        }
+    }
+
+    /**
+     * Executes a CB-prefixed instruction (rotations, shifts, BIT, RES, SET)
+     * and returns its T-cycles, prefix included.
+     */
+    private executeCb(): number {
+        const byte = this.fetch8();
+        const group = (byte >> 6) & 0x03;
+        const index = (byte >> 3) & 0x07;
+        const reg = byte & 0x07;
+        const value = this.getRegister(reg);
+        switch (group) {
+            case 0:
+                this.setRegister(reg, this.rotateShift(index, value));
+                return reg === 6 ? 16 : 8;
+            case 1: // BIT
+                this.flagZ = ((value >> index) & 1) === 0;
+                this.flagN = false;
+                this.flagH = true;
+                return reg === 6 ? 12 : 8;
+            case 2: // RES
+                this.setRegister(reg, value & ~(1 << index));
+                return reg === 6 ? 16 : 8;
+            case 3: // SET
+                this.setRegister(reg, value | (1 << index));
+                return reg === 6 ? 16 : 8;
+            default:
+                throw new Error(`Invalid CB group ${group}`);
         }
     }
 }

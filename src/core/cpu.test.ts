@@ -578,6 +578,13 @@ describe('Cpu', () => {
                 expect(cpu.flagH).toBe(true);   // 0x800 + 0x800 overflows 12 bits
                 expect(cpu.flagZ).toBe(true);   // unchanged
             });
+
+            it('executes JP (HL)', () => {
+                const cpu = makeCpu((rom) => { rom[0x0100] = 0xE9; });
+                cpu.hl = 0x2000;
+                expect(cpu.step()).toBe(4);
+                expect(cpu.pc).toBe(0x2000);
+            });
         });
     });
 });

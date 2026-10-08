@@ -780,6 +780,10 @@ export class Cpu {
                 this.mmu.write(this.fetch8() + 0xFF00, this.a);
                 return 12;
 
+            case 0xE9: // JP (HL)
+                this.pc = this.hl;
+                return 4;
+
             case 0xEA: // LD (nn), A
                 this.mmu.write(this.fetch16(), this.a);
                 return 16;

@@ -567,6 +567,17 @@ describe('Cpu', () => {
                 expect(cpu.flagC).toBe(true);   // bit 0 went out into C
                 expect(cpu.flagZ).toBe(false);  // always cleared, unlike RR A
             });
+
+            it('executes ADD HL, rr', () => {
+                const cpu = makeCpu((rom) => { rom[0x0100] = 0x29; }); // ADD HL, HL
+                cpu.hl = 0x8800;
+                cpu.flagZ = true;
+                expect(cpu.step()).toBe(8);
+                expect(cpu.hl).toBe(0x1000);    // 0x8800 + 0x8800 = 0x11000, wrapped
+                expect(cpu.flagC).toBe(true);   // overflowed 16 bits
+                expect(cpu.flagH).toBe(true);   // 0x800 + 0x800 overflows 12 bits
+                expect(cpu.flagZ).toBe(true);   // unchanged
+            });
         });
     });
 });

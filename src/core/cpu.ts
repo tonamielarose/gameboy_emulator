@@ -635,6 +635,19 @@ export class Cpu {
                 return 4;
             }
 
+            case 0x09:
+            case 0x19:
+            case 0x29:
+            case 0x39: { // ADD HL, rr
+                const p = (opcode >> 4) & 0x03;
+                const value = this.getPair(p);
+                this.flagN = false;
+                this.flagH = (this.hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF;
+                this.flagC = this.hl + value > 0xFFFF;
+                this.hl = this.hl + value;
+                return 8;
+            }
+
             case 0x0A:
             case 0x1A:
             case 0x2A:

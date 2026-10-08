@@ -602,6 +602,42 @@ describe('Cpu', () => {
                 expect(cpu.step()).toBe(16);
                 expect(cpu.sp).toBe(0x0000);    // wraps around
             });
+
+            it('adjusts A to BCD after an addition with DAA', () => {
+                const cpu = makeCpu((rom) => {
+                    rom.set([0xC6, 0x27], 0x0100); // ADD A, 0x27
+                    rom.set([0x27], 0x0102);       // DAA
+                });
+                cpu.a = 0x15;                   // 15 + 27 in BCD
+                cpu.step();
+                expect(cpu.a).toBe(0x3C);       // raw binary result
+                expect(cpu.step()).toBe(4);
+                expect(cpu.a).toBe(0x42);       // corrected: 42
+            });
+
+            it('sets Z and C when DAA wraps to zero', () => {
+                const cpu = makeCpu((rom) => {
+                    rom.set([0xC6, 0x01], 0x0100); // ADD A, 0x01
+                    rom.set([0x27], 0x0102);       // DAA
+                });
+                cpu.a = 0x99;                   // 99 + 1 in BCD
+                cpu.step();
+                cpu.step();
+                expect(cpu.a).toBe(0x00);       // 100 → 00, with a carry
+                expect(cpu.flagZ).toBe(true);
+                expect(cpu.flagC).toBe(true);
+            });
+
+            it('adjusts A to BCD after a subtraction with DAA', () => {
+                const cpu = makeCpu((rom) => {
+                    rom.set([0xD6, 0x05], 0x0100); // SUB A, 0x05
+                    rom.set([0x27], 0x0102);       // DAA
+                });
+                cpu.a = 0x20;                   // 20 - 5 in BCD
+                cpu.step();
+                cpu.step();
+                expect(cpu.a).toBe(0x15);       // corrected: 15
+            });
         });
     });
 });

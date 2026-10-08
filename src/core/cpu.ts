@@ -697,6 +697,34 @@ export class Cpu {
                 this.hl = this.fetch16();
                 return 12;
 
+            case 0x27: { // DAA
+                let correction = 0;
+                let carry = this.flagC;
+                if (!this.flagN) {
+                    if (this.flagC || this.a > 0x99) {
+                        correction |= 0x60;
+                        carry = true;
+                    }
+                    if (this.flagH || (this.a & 0x0F) > 0x09) {
+                        correction |= 0x06;
+                    }
+                    this.a += correction;
+                } else {
+                    if (this.flagC) {
+                        correction |= 0x60;
+                    }
+                    if (this.flagH) {
+                        correction |= 0x06;
+                    }
+                    this.a -= correction;
+                }
+                this.a = this.a & 0xFF;
+                this.flagZ = this.a === 0;
+                this.flagH = false;
+                this.flagC = carry;
+                return 4;
+            }
+
             case 0x31: // LD SP, nn
                 this.sp = this.fetch16();
                 return 12;

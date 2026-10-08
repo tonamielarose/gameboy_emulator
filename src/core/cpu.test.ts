@@ -683,6 +683,25 @@ describe('Cpu', () => {
                 expect(cpu.pc).toBe(0x0028);
                 expect(cpu.sp).toBe(0xFFFC);    // return address pushed
             });
+
+            it('enables interrupts one instruction after EI', () => {
+                const cpu = makeCpu((rom) => { rom.set([0xFB, 0x00], 0x0100); }); // EI, NOP
+                expect(cpu.step()).toBe(4);
+                expect(cpu.ime).toBe(false);    // not yet
+                cpu.step();
+                expect(cpu.ime).toBe(true);     // enabled once the next instruction starts
+            });
+
+            it('executes RETI', () => {
+                const cpu = makeCpu((rom) => {
+                    rom.set([0xCD, 0x00, 0x20], 0x0100); // CALL 0x2000
+                    rom.set([0xD9], 0x2000);             // RETI
+                });
+                cpu.step();
+                expect(cpu.step()).toBe(16);
+                expect(cpu.pc).toBe(0x0103);
+                expect(cpu.ime).toBe(true);     // enabled immediately
+            });
         });
     });
 });

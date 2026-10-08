@@ -25,6 +25,7 @@ export class Cpu {
     sp: number;
     pc: number;
     ime: boolean;
+    imePending: boolean;
 
 
     constructor(mmu: Mmu) {
@@ -48,6 +49,7 @@ export class Cpu {
         this.hl = 0x014D;
 
         this.ime = false;
+        this.imePending = false;
     }
 
     /** Register pair AF (A = high byte, F = low byte). The low 4 bits of F always read as 0. */
@@ -537,6 +539,11 @@ export class Cpu {
      * @see https://gbdev.io/gb-opcodes/optables/ for opcodes, timings and flags.
      */
     step(): number {
+        if (this.imePending) {
+            this.imePending = false;
+            this.ime = true;
+        }
+
         const opcode = this.fetch8();
 
         if (opcode >= 0x40 && opcode <= 0x7F && opcode !== 0x76) { // LD r, r'
@@ -740,7 +747,6 @@ export class Cpu {
                 return 12;
 
             case 0x37: // SCF
-                this.flagC = true;
                 this.flagN = false;
                 this.flagH = false;
                 this.flagC = true;
@@ -847,9 +853,14 @@ export class Cpu {
             case 0xE7:
             case 0xEF:
             case 0xF7:
-            case 0xFF: // CALL
+            case 0xFF: // RST
                 this.push16(this.pc);
-                this.pc = opcode & 0x38
+                this.pc = opcode & 0x38;
+                return 16;
+
+            case 0xD9: // RETI
+                this.pc = this.pop16();
+                this.ime = true;
                 return 16;
 
             case 0xE0: // LDH (n), A
@@ -896,6 +907,10 @@ export class Cpu {
             case 0xFA: // LD A, (nn)
                 this.a = this.mmu.read(this.fetch16());
                 return 16;
+
+            case 0xFB: // EI
+                this.imePending = true;
+                return 4;
 
             default:
                 throw new Error(`Unknown opcode 0x${hex(opcode, 2)} at 0x${hex((this.pc - 1) & 0xFFFF, 4)}`);

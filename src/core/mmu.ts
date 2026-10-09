@@ -1,4 +1,5 @@
 import type {Cartridge} from "./cartridge.ts";
+import {Timer} from "./timer.ts";
 
 // Memory map, in address order
 // See https://gbdev.io/pandocs/Memory_Map.html
@@ -26,6 +27,9 @@ const OAM_SIZE = OAM_END - OAM_START + 1;
 const UNUSABLE_END = 0xFEFF;
 
 const IO_REGISTERS_START = 0xFF00;
+const TIMER_START = 0xFF04;
+const TIMER_END = 0xFF07;
+const IF_ADDRESS = 0xFF0F;
 const IO_REGISTERS_END = 0xFF7F;
 const IO_REGISTERS_SIZE = IO_REGISTERS_END - IO_REGISTERS_START + 1;
 
@@ -37,8 +41,6 @@ const HRAM_END = 0xFFFE;
 const HRAM_SIZE = HRAM_END - HRAM_START + 1;
 
 const IE_ADDRESS = 0xFFFF;
-
-
 
 /**
  * Memory bus: routes every CPU read and write to the right component
@@ -55,6 +57,8 @@ export class Mmu {
     private ie: number;
     private serialOutput: string;
 
+    private readonly timer: Timer;
+
     constructor(cartridge: Cartridge) {
         this.cartridge = cartridge;
         this.vram = new Uint8Array(VRAM_SIZE);
@@ -64,6 +68,7 @@ export class Mmu {
         this.hram = new Uint8Array(HRAM_SIZE);
         this.ie = 0;
         this.serialOutput = "";
+        this.timer = new Timer();
     }
 
     /**
@@ -95,6 +100,9 @@ export class Mmu {
             return 0xFF;
         }
         if (address <= IO_REGISTERS_END) {
+            if (address >= TIMER_START && address <= TIMER_END) {
+                return this.timer.read(address);
+            }
             return this.io[address - IO_REGISTERS_START];
         }
         if (address <= HRAM_END) {
@@ -140,8 +148,13 @@ export class Mmu {
             return;
         }
         if (address <= IO_REGISTERS_END) {
+            if (address >= TIMER_START && address <= TIMER_END) {
+                this.timer.write(address, value);
+                return;
+            }
+
             this.io[address - IO_REGISTERS_START] = value;
-            if(address === SERIAL_CONTROL && value === 0x81){
+            if (address === SERIAL_CONTROL && value === 0x81) {
                 const char = String.fromCharCode(this.read(SERIAL_DATA));
                 this.serialOutput += char;
             }
@@ -185,5 +198,17 @@ export class Mmu {
      */
     get serial(): string {
         return this.serialOutput;
+    }
+
+    /** Requests an interrupt by setting its bit in IF (0=VBlank, 1=STAT, 2=Timer, 3=Serial, 4=Joypad). */
+    requestInterrupt(bit: number): void {
+        this.io[IF_ADDRESS - IO_REGISTERS_START] |= 1 << bit;
+    }
+
+    /** Advances the hardware components by the given number of T-cycles. */
+    tick(cycles: number): void {
+        if (this.timer.tick(cycles)) {
+            this.requestInterrupt(2);
+        }
     }
 }

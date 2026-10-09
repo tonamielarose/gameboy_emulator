@@ -152,4 +152,29 @@ describe('Mmu', () => {
             expect(mmu.serial).toBe('');
         });
     });
+
+    describe('timer', () => {
+        it('routes the timer registers to the timer', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFF07, 0x05);
+            expect(mmu.read(0xFF07)).toBe(0xFD);   // unused TAC bits read as 1
+        });
+
+        it('requests the timer interrupt when TIMA overflows', () => {
+            const mmu = makeMmu();
+            mmu.write(0xFF05, 0xFF);               // TIMA about to overflow
+            mmu.write(0xFF07, 0x05);               // enabled, 16-cycle period
+            mmu.tick(16);
+            expect(mmu.read(0xFF0F) & 0x04).toBe(0x04);
+        });
+    });
+
+    describe('interrupt requests', () => {
+        it('keeps other pending interrupts', () => {
+            const mmu = makeMmu();
+            mmu.requestInterrupt(0);               // VBlank
+            mmu.requestInterrupt(2);               // Timer
+            expect(mmu.read(0xFF0F) & 0x1F).toBe(0x05); // both still pending
+        });
+    });
 });

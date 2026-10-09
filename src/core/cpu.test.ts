@@ -180,9 +180,33 @@ describe('Cpu', () => {
             expect(cpu.a).toBe(0x42);
         });
 
-        it('does not treat 0x76 (HALT) as a load', () => {
-            const cpu = makeCpu((rom) => { rom[0x0100] = 0x76; });
-            expect(() => cpu.step()).toThrow('Unknown opcode 0x76');
+        it('sleeps on HALT until an interrupt is pending', () => {
+            const cpu = makeCpu((rom) => { rom.set([0x76, 0x00], 0x0100); }); // HALT, NOP
+            expect(cpu.step()).toBe(4);
+            expect(cpu.halted).toBe(true);
+            expect(cpu.step()).toBe(4);         // still asleep
+            expect(cpu.pc).toBe(0x0101);        // PC does not move
+        });
+
+        it('wakes from HALT without servicing when IME is off', () => {
+            const cpu = makeCpu((rom) => { rom.set([0x76, 0x00], 0x0100); }); // HALT, NOP
+            cpu.step();
+            cpu['mmu'].write(0xFFFF, 0x01);
+            cpu['mmu'].write(0xFF0F, 0x01);
+            cpu.step();                          // wakes and runs the NOP
+            expect(cpu.halted).toBe(false);
+            expect(cpu.pc).toBe(0x0102);
+        });
+
+        it('wakes from HALT and services the interrupt when IME is on', () => {
+            const cpu = makeCpu((rom) => { rom[0x0100] = 0x76; }); // HALT
+            cpu.step();
+            cpu.ime = true;
+            cpu['mmu'].write(0xFFFF, 0x01);
+            cpu['mmu'].write(0xFF0F, 0x01);
+            expect(cpu.step()).toBe(20);
+            expect(cpu.halted).toBe(false);
+            expect(cpu.pc).toBe(0x0040);         // VBlank handler
         });
 
         it('executes JR e forwards', () => {
@@ -736,6 +760,8 @@ describe('Cpu', () => {
                 expect(cpu.step()).toBe(4);               // just the NOP
                 expect(cpu.pc).toBe(0x0101);
             });
+
+
         });
     });
 });

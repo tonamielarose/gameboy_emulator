@@ -29,6 +29,7 @@ export class Cpu {
     pc: number;
     ime: boolean;
     imePending: boolean;
+    halted: boolean;
 
 
     constructor(mmu: Mmu) {
@@ -53,6 +54,7 @@ export class Cpu {
 
         this.ime = false;
         this.imePending = false;
+        this.halted = false;
     }
 
     /** Register pair AF (A = high byte, F = low byte). The low 4 bits of F always read as 0. */
@@ -517,6 +519,14 @@ export class Cpu {
             return interruptCycles;
         }
 
+        if (this.halted) {
+            if(this.pendingInterrupts()){
+                this.halted = false;
+            } else {
+                return 4;
+            }
+        }
+
         if (this.imePending) {
             this.imePending = false;
             this.ime = true;
@@ -737,6 +747,10 @@ export class Cpu {
                 this.flagC = !this.flagC;
                 return 4;
 
+            case 0x76: // HALT
+                this.halted = true;
+                return 4;
+
             case 0xC0:
             case 0xC8:
             case 0xD0:
@@ -936,14 +950,14 @@ export class Cpu {
             return 0;
         }
 
-        const ie = this.mmu.read(IE_ADDRESS);
         const iff = this.mmu.read(IF_ADDRESS);
-        const pending = ie & iff & 0x1F;
+        const pending = this.pendingInterrupts();
 
         if (pending === 0) {
             return 0;
         }
 
+        this.halted = false;
         for (let bit = 0; bit < 5; bit++) {
             if (pending & (1 << bit)) {
                 this.ime = false;
@@ -955,5 +969,10 @@ export class Cpu {
         }
 
         return 0;
+    }
+
+    /** Interrupts that are both requested (IF) and enabled (IE), as a 5-bit mask. */
+    private pendingInterrupts(): number {
+        return this.mmu.read(IE_ADDRESS) & this.mmu.read(IF_ADDRESS) & 0x1F;
     }
 }

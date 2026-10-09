@@ -1,16 +1,10 @@
 import type {Mmu} from "./mmu.ts";
+import { hex, toSigned8 } from "./utils.ts";
 
 const IE_ADDRESS = 0xFFFF;
 const IF_ADDRESS = 0xFF0F;
 
-/** Formats a number as uppercase hexadecimal, padded to the given number of digits. */
-function hex(value: number, digits: number): string {
-    return value.toString(16).toUpperCase().padStart(digits, '0');
-}
 
-function toSigned8(byte: number): number {
-    return byte >= 0x80 ? byte - 0x100 : byte;
-}
 
 /**
  * Sharp SM83 CPU: registers, flags and instruction execution.

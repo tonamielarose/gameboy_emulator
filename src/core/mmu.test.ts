@@ -177,4 +177,19 @@ describe('Mmu', () => {
             expect(mmu.read(0xFF0F) & 0x1F).toBe(0x05); // both still pending
         });
     });
+
+    describe('PPU', () => {
+        it('routes the PPU registers to the PPU', () => {
+            const mmu = makeMmu();
+            expect(mmu.read(0xFF40)).toBe(0x91);   // LCDC after boot
+            mmu.tick(456);
+            expect(mmu.read(0xFF44)).toBe(1);      // LY advanced
+        });
+
+        it('requests the VBlank interrupt', () => {
+            const mmu = makeMmu();
+            mmu.tick(456 * 144);
+            expect(mmu.read(0xFF0F) & 0x01).toBe(0x01);
+        });
+    });
 });

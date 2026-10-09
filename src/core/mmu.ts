@@ -1,5 +1,6 @@
 import type {Cartridge} from "./cartridge.ts";
 import {Timer} from "./timer.ts";
+import {Ppu} from "./ppu.ts";
 
 // Memory map, in address order
 // See https://gbdev.io/pandocs/Memory_Map.html
@@ -30,6 +31,8 @@ const IO_REGISTERS_START = 0xFF00;
 const TIMER_START = 0xFF04;
 const TIMER_END = 0xFF07;
 const IF_ADDRESS = 0xFF0F;
+const PPU_REGISTERS_START = 0xFF40;
+const PPU_REGISTERS_END = 0xFF4B;
 const IO_REGISTERS_END = 0xFF7F;
 const IO_REGISTERS_SIZE = IO_REGISTERS_END - IO_REGISTERS_START + 1;
 
@@ -58,6 +61,7 @@ export class Mmu {
     private serialOutput: string;
 
     private readonly timer: Timer;
+    private readonly ppu: Ppu;
 
     constructor(cartridge: Cartridge) {
         this.cartridge = cartridge;
@@ -69,6 +73,7 @@ export class Mmu {
         this.ie = 0;
         this.serialOutput = "";
         this.timer = new Timer();
+        this.ppu = new Ppu();
     }
 
     /**
@@ -102,6 +107,9 @@ export class Mmu {
         if (address <= IO_REGISTERS_END) {
             if (address >= TIMER_START && address <= TIMER_END) {
                 return this.timer.read(address);
+            }
+            if (address >= PPU_REGISTERS_START && address <= PPU_REGISTERS_END) {
+                return this.ppu.read(address);
             }
             return this.io[address - IO_REGISTERS_START];
         }
@@ -150,6 +158,10 @@ export class Mmu {
         if (address <= IO_REGISTERS_END) {
             if (address >= TIMER_START && address <= TIMER_END) {
                 this.timer.write(address, value);
+                return;
+            }
+            if (address >= PPU_REGISTERS_START && address <= PPU_REGISTERS_END) {
+                this.ppu.write(address, value);
                 return;
             }
 
@@ -210,5 +222,7 @@ export class Mmu {
         if (this.timer.tick(cycles)) {
             this.requestInterrupt(2);
         }
+        const ppuInterrupts = this.ppu.tick(cycles);
+        this.io[IF_ADDRESS - IO_REGISTERS_START] |= ppuInterrupts;
     }
 }

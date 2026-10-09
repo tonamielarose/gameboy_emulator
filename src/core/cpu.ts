@@ -670,6 +670,11 @@ export class Cpu {
                 return 8;
             }
 
+            case 0x10: // STOP
+                this.fetch8();
+                this.halted = true;
+                return 4;
+
             case 0x11: // LD DE, nn
                 this.de = this.fetch16();
                 return 12;

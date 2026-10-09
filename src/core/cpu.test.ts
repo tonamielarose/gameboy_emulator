@@ -761,7 +761,12 @@ describe('Cpu', () => {
                 expect(cpu.pc).toBe(0x0101);
             });
 
-
+            it('executes STOP', () => {
+                const cpu = makeCpu((rom) => { rom.set([0x10, 0x00], 0x0100); }); // STOP
+                expect(cpu.step()).toBe(4);
+                expect(cpu.halted).toBe(true);
+                expect(cpu.pc).toBe(0x0102);   // skipped the extra byte
+            });
         });
     });
 });

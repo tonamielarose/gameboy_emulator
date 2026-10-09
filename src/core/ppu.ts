@@ -10,8 +10,8 @@ const CYCLES_PER_LINE = 456;
 const VBLANK_START_LINE = 144;
 const LAST_LINE = 153;
 
-const SCREEN_WIDTH = 160;
-const SCREEN_HEIGHT = 144;
+export const SCREEN_WIDTH = 160;
+export const SCREEN_HEIGHT = 144;
 
 const VRAM_START = 0x8000;
 const TILE_MAP_0 = 0x9800;

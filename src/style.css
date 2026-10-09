@@ -1,0 +1,5 @@
+#screen {
+    width: 480px;
+    height: 432px;
+    image-rendering: pixelated;
+}

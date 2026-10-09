@@ -212,6 +212,11 @@ export class Mmu {
         return this.serialOutput;
     }
 
+    /** The PPU's current image. */
+    get framebuffer(): Uint8Array {
+        return this.ppu.framebuffer;
+    }
+
     /** Requests an interrupt by setting its bit in IF (0=VBlank, 1=STAT, 2=Timer, 3=Serial, 4=Joypad). */
     requestInterrupt(bit: number): void {
         this.io[IF_ADDRESS - IO_REGISTERS_START] |= 1 << bit;

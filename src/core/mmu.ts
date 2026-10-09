@@ -73,7 +73,7 @@ export class Mmu {
         this.ie = 0;
         this.serialOutput = "";
         this.timer = new Timer();
-        this.ppu = new Ppu();
+        this.ppu = new Ppu(this.vram);
     }
 
     /**
